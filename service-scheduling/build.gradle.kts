@@ -1,5 +1,5 @@
 plugins {
-    id("stream.pal.kotlin-application-conventions")
+    id("djei.kotlin-application-conventions")
 }
 
 dependencies {

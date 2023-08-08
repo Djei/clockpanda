@@ -10,7 +10,6 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher
 
 @Configuration
 class WebSecurityConfiguration {
-
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http

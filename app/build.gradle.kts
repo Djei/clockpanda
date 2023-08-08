@@ -1,12 +1,11 @@
 plugins {
-    id("stream.pal.kotlin-application-conventions")
+    id("djei.kotlin-application-conventions")
 }
 
 dependencies {
     implementation(project(":service-authnz"))
     implementation(project(":service-scheduling"))
 }
-
 
 tasks {
     getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
