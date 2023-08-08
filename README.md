@@ -7,8 +7,8 @@ Open source implementation of a schedule management and optimization system
 ## Code structure
 This project is split into gradle subprojects.
 - `app` is the main Spring application and view controllers
-- `service-xxx` are modules containing business logic exposed via endpoints by the application
-- `lib-xxx` are modules containing library code with no exposed endpoints by the application e.g. database access and data models
+- `service-xxx` are modules containing business logic executed via endpoints or by background processes e.g. cron jobs, daemon process
+- `lib-xxx` are modules containing simply library code e.g. database access, data models
 
 ## Commit messages
 Commit messages must be prefixed with one of the following tags:
