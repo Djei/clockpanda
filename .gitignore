@@ -3,3 +3,9 @@
 
 # Ignore Gradle build output directory
 build
+
+# Ignore .env file containing credentials for local development
+.env
+
+# Ignore intelliJ IDEA project files
+.idea

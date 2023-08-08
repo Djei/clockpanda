@@ -1,13 +1,14 @@
-package djei.stream.pal.app
+package djei.clockpanda.app
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.boot.runApplication
+import org.springframework.web.bind.annotation.RestController
 
 @SpringBootApplication(
-    scanBasePackages = ["djei.stream.pal"]
+    scanBasePackages = ["djei.clockpanda"]
 )
-@ConfigurationPropertiesScan(basePackages = ["djei.stream.pal"])
+@ConfigurationPropertiesScan(basePackages = ["djei.clockpanda"])
 class App
 
 fun main(args: Array<String>) {

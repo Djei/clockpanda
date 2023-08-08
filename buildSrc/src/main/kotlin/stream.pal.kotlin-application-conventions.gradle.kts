@@ -14,7 +14,6 @@ plugins {
     id("io.spring.dependency-management")
 }
 
-
 dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
@@ -23,8 +22,12 @@ dependencies {
 
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-aop")
+
+    // Web jars
+    implementation("org.webjars:jquery:3.7.0")
+    implementation("org.webjars:bootstrap:5.3.1")
+    implementation("org.webjars:webjars-locator:0.47")
 }
 
 tasks {

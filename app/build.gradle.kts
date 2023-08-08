@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":service-authnz"))
     implementation(project(":service-scheduling"))
 }
 

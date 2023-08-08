@@ -3,3 +3,11 @@ server:
   error:
     include-message: "always"
   shutdown: graceful
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            scope: openid, profile, email, https://www.googleapis.com/auth/calendar.readonly
