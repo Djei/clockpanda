@@ -27,10 +27,6 @@ class WebSecurityConfiguration {
             .exceptionHandling { e ->
                 e.authenticationEntryPoint(HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
             }
-            // TODO fix CSRF
-            .csrf { c ->
-                c.disable()
-            }
             .oauth2Login { o ->
                 o.userInfoEndpoint { u ->
                     u.oidcUserService(ClockPandaOidcUserService())

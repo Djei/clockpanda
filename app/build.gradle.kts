@@ -6,7 +6,7 @@ dependencies {
     implementation(project(":service-authnz"))
     implementation(project(":service-scheduling"))
 
-    implementation("org.apache.tomcat.embed:tomcat-embed-jasper")
+    implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 }
 
 tasks {
