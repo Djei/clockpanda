@@ -1,5 +1,6 @@
-package djei.clockpanda.authnz
+package djei.clockpanda.authnz.config
 
+import jakarta.servlet.DispatcherType
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
@@ -15,11 +16,11 @@ class WebSecurityConfiguration {
         http
             .authorizeHttpRequests { a ->
                 a
+                    .dispatcherTypeMatchers(DispatcherType.FORWARD).permitAll()
                     .requestMatchers(
                         AntPathRequestMatcher.antMatcher("/"),
-                        AntPathRequestMatcher.antMatcher("/index.html"),
                         AntPathRequestMatcher.antMatcher("/favicon.ico"),
-                        AntPathRequestMatcher.antMatcher("/webjars/**"),
+                        AntPathRequestMatcher.antMatcher("/webjars/**")
                     ).permitAll()
                     .anyRequest().authenticated()
             }

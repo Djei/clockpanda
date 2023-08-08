@@ -1,4 +1,4 @@
-package djei.clockpanda.authnz
+package djei.clockpanda.authnz.config
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest
