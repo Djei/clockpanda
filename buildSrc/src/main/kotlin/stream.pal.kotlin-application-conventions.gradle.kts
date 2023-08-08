@@ -28,6 +28,9 @@ dependencies {
     implementation("org.webjars:jquery:3.7.0")
     implementation("org.webjars:bootstrap:5.3.1")
     implementation("org.webjars:webjars-locator:0.47")
+
+    // .env
+    implementation("me.paulschwarz:spring-dotenv:4.0.0")
 }
 
 tasks {

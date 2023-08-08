@@ -1,6 +1,5 @@
-package djei.pupstream.authnz
+package djei.clockpanda.authnz
 
-import djei.clockpanda.authnz.ClockPandaOidcUserService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpStatus
