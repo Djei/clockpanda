@@ -82,7 +82,7 @@ class ClockPandaAuthorizedClientRepository(
         val lastName = user.attributes["family_name"] as String
 
         if (userRepository.fetchByEmail(dslContext, email) == null) {
-            userRepository.createUser(
+            userRepository.create(
                 ctx = dslContext,
                 user = User(
                     email = email,
@@ -95,7 +95,7 @@ class ClockPandaAuthorizedClientRepository(
                 )
             )
         } else {
-            userRepository.updateUserGoogleRefreshToken(
+            userRepository.updateGoogleRefreshToken(
                 ctx = dslContext,
                 email = email,
                 refreshTokenValue = refreshToken.tokenValue

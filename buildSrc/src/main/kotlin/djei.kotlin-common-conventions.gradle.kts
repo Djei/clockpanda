@@ -1,5 +1,3 @@
-import gradle.kotlin.dsl.accessors._83a6bd8009c113268aae514aadb60068.implementation
-
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm")
@@ -60,6 +58,43 @@ tasks {
 
     test {
         useJUnitPlatform()
+    }
+
+    withType<JacocoReport> {
+        dependsOn(test)
+        afterEvaluate {
+            classDirectories.setFrom(
+                files(
+                    classDirectories.files.map {
+                        fileTree(it).apply {
+                            exclude("djei/clockpanda/jooq/**")
+                        }
+                    }
+                )
+            )
+        }
+    }
+    jacocoTestCoverageVerification {
+        dependsOn(test)
+        mustRunAfter(jacocoTestReport)
+        violationRules {
+            rule {
+                limit {
+                    counter = "INSTRUCTION"
+                    minimum = BigDecimal(0.8)
+                }
+            }
+
+            rule {
+                limit {
+                    counter = "BRANCH"
+                    minimum = BigDecimal(0.75)
+                }
+            }
+        }
+    }
+    check {
+        dependsOn(jacocoTestReport, jacocoTestCoverageVerification)
     }
 }
 

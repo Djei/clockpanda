@@ -13,3 +13,28 @@ dependencies {
 
     testImplementation(project(":lib-testing"))
 }
+
+tasks {
+    jacocoTestCoverageVerification {
+        violationRules {
+            // Disable all default coverage rules from backend convention to define our own
+            rules.forEach { it.isEnabled = false }
+
+            // The `service-authnz` module contains a lot of Spring Security configuration boilerplate code
+            // They are harder to cover with unit tests, so we set a lower coverage threshold for them
+            rule {
+                limit {
+                    counter = "INSTRUCTION"
+                    minimum = BigDecimal(0.30)
+                }
+            }
+
+            rule {
+                limit {
+                    counter = "BRANCH"
+                    minimum = BigDecimal(0.01)
+                }
+            }
+        }
+    }
+}

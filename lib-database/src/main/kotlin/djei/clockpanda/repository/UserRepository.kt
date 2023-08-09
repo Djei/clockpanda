@@ -14,14 +14,14 @@ class UserRepository {
             .fetchOne()?.let { User.fromJooqRecord(it) }
     }
 
-    fun createUser(ctx: DSLContext, user: User): User {
+    fun create(ctx: DSLContext, user: User): User {
         ctx.insertInto(USER)
             .set(user.toJooqRecord())
             .execute()
         return user
     }
 
-    fun updateUserGoogleRefreshToken(
+    fun updateGoogleRefreshToken(
         ctx: DSLContext,
         email: String,
         refreshTokenValue: String?
