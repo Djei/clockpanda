@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":service-scheduling"))
 
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
+    implementation("org.springframework.boot:spring-boot-starter-jooq")
 }
 
 tasks {

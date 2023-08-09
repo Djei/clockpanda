@@ -7,3 +7,6 @@ spring:
             client_id: fake_client_id
             client_secret: fake_client_secret
             scope: openid, profile, email, https://www.googleapis.com/auth/calendar.readonly
+  datasource:
+    url: jdbc:sqlite:file:../db.sqlite3
+    driver-class-name: org.sqlite.JDBC

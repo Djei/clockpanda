@@ -1,4 +1,4 @@
-.PHONY: build bootRun
+.PHONY: build bootRun bootRunDebug
 
 # Any flags to pass into the build command
 GRADLEFLAGS =
@@ -11,7 +11,10 @@ GRADLE = ./gradlew
 
 # Note the '$@' passes the target (ex: 'build') to the command
 build:
-	$(GRADLE) $@ $(GRADLEFLAGS)
+	$(GRADLE) build $(GRADLEFLAGS)
 
 bootRun:
-	$(GRADLE) $@ --args='--spring.profiles.active=local' $(GRADLEFLAGS)
+	$(GRADLE) bootRun --args='--spring.profiles.active=local' $(GRADLEFLAGS)
+
+bootRunDebug:
+	$(GRADLE) bootRun --args='--spring.profiles.active=local' --debug-jvm $(GRADLEFLAGS)

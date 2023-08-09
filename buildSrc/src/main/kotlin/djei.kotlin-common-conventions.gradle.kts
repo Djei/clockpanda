@@ -1,3 +1,5 @@
+import gradle.kotlin.dsl.accessors._83a6bd8009c113268aae514aadb60068.implementation
+
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm")
@@ -20,8 +22,12 @@ val ktlint: Configuration by configurations.creating {
 }
 
 dependencies {
-    constraints {
-    }
+    // Kotlin
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+    // Kotlinx
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
     // ktlint
     ktlint("com.pinterest:ktlint:0.45.0") {

@@ -1,10 +1,10 @@
 import org.springframework.boot.gradle.tasks.bundling.BootJar
-import org.springframework.boot.gradle.tasks.bundling.BootWar
 import org.springframework.boot.gradle.tasks.run.BootRun
 
 plugins {
     // Apply the common convention plugin for shared build configuration between library and application projects.
     id("djei.kotlin-common-conventions")
+    kotlin("plugin.serialization")
     // Spring plugins
     kotlin("plugin.spring")
     id("org.springframework.boot")
@@ -12,11 +12,6 @@ plugins {
 }
 
 dependencies {
-    // Kotlin
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-    // Kotlin coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-aop")

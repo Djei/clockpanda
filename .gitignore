@@ -9,3 +9,6 @@ build
 
 # Ignore intelliJ IDEA project files
 .idea
+
+# sqlite3 database file when developing locally
+db.sqlite3
