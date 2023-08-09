@@ -22,6 +22,8 @@ tasks {
 
             // The `service-authnz` module contains a lot of Spring Security configuration boilerplate code
             // They are harder to cover with unit tests, so we set a lower coverage threshold for them
+            // This is not ideal but mitigated by the fact that those should not often change once written
+            // and have been validated by running the application locally
             rule {
                 limit {
                     counter = "INSTRUCTION"
