@@ -1,33 +1,40 @@
 package djei.clockpanda.scheduling.googlecalendar
 
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.calendar.Calendar
-import com.google.auth.http.HttpCredentialsAdapter
-import com.google.auth.oauth2.AccessToken
-import com.google.auth.oauth2.OAuth2Credentials
+import djei.clockpanda.repository.UserRepository
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
+import org.jooq.SQLDialect
+import org.jooq.impl.DSL
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import java.time.Instant
-import java.time.temporal.ChronoUnit
-import java.util.*
+import java.sql.DriverManager
 
 @Disabled
 class GoogleCalendarApiPlayground {
 
-    @Test
-    fun test() {
-        val accessToken = AccessToken(
-            "",
-            Date.from(Instant.now().plus(3600L, ChronoUnit.SECONDS))
-        )
-        val service = Calendar.Builder(
-            GoogleNetHttpTransport.newTrustedTransport(),
-            GsonFactory.getDefaultInstance(),
-            HttpCredentialsAdapter(OAuth2Credentials.create(accessToken))
-        ).setApplicationName("Google Drive Service").build()
+    private val userRepository = UserRepository()
+    private val dsl = DSL.using(DriverManager.getConnection("jdbc:sqlite:file:../db.sqlite3"), SQLDialect.SQLITE)
+    private val user = userRepository.fetchByEmail(
+        ctx = dsl,
+        email = ""
+    )
+    private val googleCalendarApiFacade = GoogleCalendarApiFacade(
+        googleClientId = "",
+        googleClientSecret = ""
+    )
 
-        val result = service.CalendarList().list().execute().items
+    @Test
+    fun `test list calendar events`() {
+        val result = user.map {
+            val rangeStart = Clock.System.now()
+            googleCalendarApiFacade.listCalendarEvents(
+                user = it!!,
+                rangeStart = rangeStart,
+                rangeEnd = rangeStart.plus(24 * 14, DateTimeUnit.HOUR)
+            )
+        }
+
         println(result)
     }
 }

@@ -27,6 +27,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
 
+    // Arrow core
+    implementation("io.arrow-kt:arrow-core:1.2.0")
+
     // ktlint
     ktlint("com.pinterest:ktlint:0.45.0") {
         attributes {
