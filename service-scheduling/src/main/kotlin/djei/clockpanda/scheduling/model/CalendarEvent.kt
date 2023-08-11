@@ -66,6 +66,6 @@ data class CalendarEvent(
     }
 }
 
-const val CLOCK_PANDA_EVENT_TITLE_PREFIX = "[ClockPanda]"
+private const val CLOCK_PANDA_EVENT_TITLE_PREFIX = "[ClockPanda]"
 const val CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Focus Time"
 const val CLOCK_PANDA_LUNCH_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Lunch Break"

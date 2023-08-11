@@ -46,10 +46,12 @@ class GoogleCalendarApiFacade(
             listEventRequest.orderBy = "startTime"
             var listEventResponse = listEventRequest.execute()
             val googleCalendarEvents = listEventResponse.items.toMutableList()
-            while (listEventResponse.nextPageToken != null) {
+            var nextPageToken = listEventResponse.nextPageToken
+            while (nextPageToken != null) {
+                listEventRequest.pageToken = nextPageToken
                 listEventResponse = listEventRequest.execute()
                 googleCalendarEvents.addAll(listEventResponse.items)
-                listEventRequest.pageToken = listEventResponse.nextPageToken
+                nextPageToken = listEventResponse.nextPageToken
             }
             googleCalendarEvents
         }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(it.message) }

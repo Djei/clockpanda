@@ -14,6 +14,8 @@ import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
 import djei.clockpanda.model.UserMetadata
+import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -27,8 +29,11 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockConstruction
 import org.mockito.Mockito.mockConstructionWithAnswer
 import org.mockito.Mockito.`when`
+import org.mockito.Mockito.atLeastOnce
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 @ExtendWith(MockitoExtension::class)
 class GoogleCalendarApiFacadeTest {
@@ -49,6 +54,11 @@ class GoogleCalendarApiFacadeTest {
         lastUpdatedAt = Clock.System.now()
     )
 
+    private val timeSpan = TimeSpan(
+        start = Clock.System.now(),
+        end = Clock.System.now().plus(24 * 7, DateTimeUnit.HOUR)
+    )
+
     @Test
     fun `test listCalendarEvents - failed to retrieve user access token`() {
         mockConstructionWithAnswer(
@@ -57,8 +67,7 @@ class GoogleCalendarApiFacadeTest {
         ).use {
             val result = googleCalendarApiFacade.listCalendarEvents(
                 user,
-                Clock.System.now(),
-                Clock.System.now().plus(24, DateTimeUnit.HOUR),
+                timeSpan,
             )
 
             when (result) {
@@ -93,8 +102,7 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    Clock.System.now(),
-                    Clock.System.now().plus(24, DateTimeUnit.HOUR),
+                    timeSpan,
                 )
 
                 when (result) {
@@ -146,8 +154,7 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    Clock.System.now(),
-                    Clock.System.now().plus(24, DateTimeUnit.HOUR),
+                    timeSpan,
                 )
 
                 when (result) {
@@ -204,8 +211,7 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    Clock.System.now(),
-                    Clock.System.now().plus(24, DateTimeUnit.HOUR),
+                    timeSpan,
                 )
 
                 when (result) {
@@ -263,9 +269,14 @@ class GoogleCalendarApiFacadeTest {
                         `when`(mockCalendar.events()).thenReturn(mockCalendarEvents)
                         `when`(mockCalendarEvents.list(any())).thenReturn(mockCalendarEventsList)
                         `when`(mockCalendarEventsList.execute()).thenReturn(mockEvents)
-                        `when`(mockEvents.items).thenReturn(listOf(mockEvent1)).thenReturn(listOf(mockEvent2))
+                        `when`(mockEvents.items)
+                            .thenReturn(listOf(mockEvent1))
+                            .thenReturn(listOf(mockEvent2))
+                        `when`(mockEvents.nextPageToken)
+                            .thenReturn("next_page_token")
+                            .thenReturn(null)
                         `when`(mockEvent1.id).thenReturn("event_id_1")
-                        `when`(mockEvent1.summary).thenReturn("summary")
+                        `when`(mockEvent1.summary).thenReturn(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
                         `when`(mockEvent1.description).thenReturn("description")
                         `when`(mockEvent1.start).thenReturn(
                             EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-10T10:00:00.000Z"))
@@ -286,14 +297,12 @@ class GoogleCalendarApiFacadeTest {
                         )
                         `when`(mockEvent2.iCalUID).thenReturn("ical_uid_2")
                         `when`(mockEvent2.recurringEventId).thenReturn(null)
-                        `when`(mockEvents.nextPageToken).thenReturn("next_page_token").thenReturn(null)
                     }
                 }
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    Clock.System.now(),
-                    Clock.System.now().plus(24, DateTimeUnit.HOUR),
+                    timeSpan,
                 )
 
                 when (result) {
@@ -303,13 +312,14 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(calendarEvents).hasSize(2)
                         val calendarEvent1 = calendarEvents[0]
                         assertThat(calendarEvent1.id).isEqualTo("event_id_1")
-                        assertThat(calendarEvent1.title).isEqualTo("summary")
+                        assertThat(calendarEvent1.title).isEqualTo("[ClockPanda] Focus Time")
                         assertThat(calendarEvent1.description).isEqualTo("description")
                         val timeSpan1 = calendarEvent1.getTimeSpan(TimeZone.of("America/New_York"))
                         assertThat(timeSpan1.start).isEqualTo(Instant.parse("2021-01-10T10:00:00.000Z"))
                         assertThat(timeSpan1.end).isEqualTo(Instant.parse("2021-01-10T11:00:00.000Z"))
                         assertThat(calendarEvent1.iCalUid).isEqualTo("ical_uid_1")
                         assertThat(calendarEvent1.isRecurring).isTrue
+                        assertThat(calendarEvent1.isClockPandaEvent()).isTrue
                         val calendarEvent2 = calendarEvents[1]
                         assertThat(calendarEvent2.id).isEqualTo("event_id_2")
                         assertThat(calendarEvent2.title).isEqualTo("")
@@ -319,6 +329,13 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(timeSpan2.end).isEqualTo(Instant.parse("2021-01-11T05:00:00.000Z"))
                         assertThat(calendarEvent2.iCalUid).isEqualTo("ical_uid_2")
                         assertThat(calendarEvent2.isRecurring).isFalse
+                        assertThat(calendarEvent2.isClockPandaEvent()).isFalse
+                        verify(mockCalendarEventsList).singleEvents = true
+                        verify(mockCalendarEventsList).timeMin = DateTime(timeSpan.start.toEpochMilliseconds())
+                        verify(mockCalendarEventsList).timeMax = DateTime(timeSpan.end.toEpochMilliseconds())
+                        verify(mockCalendarEventsList).orderBy = "startTime"
+                        verify(mockCalendarEventsList).pageToken = "next_page_token"
+                        verify(mockCalendarEventsList, times(2)).execute()
                     }
                 }
             }

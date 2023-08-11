@@ -1,6 +1,7 @@
 package djei.clockpanda.scheduling.googlecalendar
 
 import djei.clockpanda.repository.UserRepository
+import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
@@ -30,8 +31,7 @@ class GoogleCalendarApiPlayground {
             val rangeStart = Clock.System.now()
             googleCalendarApiFacade.listCalendarEvents(
                 user = it!!,
-                rangeStart = rangeStart,
-                rangeEnd = rangeStart.plus(24 * 14, DateTimeUnit.HOUR)
+                range = TimeSpan(rangeStart, rangeStart.plus(24 * 14, DateTimeUnit.HOUR))
             )
         }
 
