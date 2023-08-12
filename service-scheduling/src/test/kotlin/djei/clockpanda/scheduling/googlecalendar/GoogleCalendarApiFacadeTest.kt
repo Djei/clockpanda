@@ -13,7 +13,7 @@ import com.google.api.services.calendar.model.Events
 import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
-import djei.clockpanda.model.UserMetadata
+import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
@@ -46,9 +46,7 @@ class GoogleCalendarApiFacadeTest {
         calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
         calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
         googleRefreshToken = "refresh_token",
-        metadata = UserMetadata.Version1(
-            preferredTimeZone = TimeZone.of("Europe/London")
-        ),
+        preferences = UserFixtures.userPreferences,
         createdAt = Clock.System.now(),
         lastUpdatedAt = Clock.System.now()
     )
@@ -75,6 +73,7 @@ class GoogleCalendarApiFacadeTest {
                     val error = result.value as GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError
                     assertThat(error.message).isEqualTo("google auth api get access token error: failed to refresh token")
                 }
+
                 is Either.Right -> fail("This should have failed")
             }
         }
@@ -110,6 +109,7 @@ class GoogleCalendarApiFacadeTest {
                         val error = result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError
                         assertThat(error.message).isEqualTo("google calendar api list calendar list error: failed to execute calendar list")
                     }
+
                     is Either.Right -> fail("This should have failed")
                 }
             }
@@ -163,6 +163,7 @@ class GoogleCalendarApiFacadeTest {
                             result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiNoPrimaryCalendarFoundForUserError
                         assertThat(error.message).isEqualTo("no primary calendar found for user: djei2@github.com")
                     }
+
                     is Either.Right -> fail("This should have failed")
                 }
             }
@@ -203,6 +204,7 @@ class GoogleCalendarApiFacadeTest {
                         `when`(mockCalendarListEntry.isPrimary).thenReturn(true)
                         `when`(mockCalendarListEntry.accessRole).thenReturn("owner")
                     }
+
                     2 -> {
                         `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to execute events list"))
                     }
@@ -219,6 +221,7 @@ class GoogleCalendarApiFacadeTest {
                         val error = result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError
                         assertThat(error.message).isEqualTo("google calendar api list events error: failed to execute events list")
                     }
+
                     is Either.Right -> fail("This should have failed")
                 }
             }
@@ -261,6 +264,7 @@ class GoogleCalendarApiFacadeTest {
                         `when`(mockCalendarListEntry.isPrimary).thenReturn(true)
                         `when`(mockCalendarListEntry.accessRole).thenReturn("owner")
                     }
+
                     2 -> {
                         val mockEvents = mock(Events::class.java)
                         val mockEvent1 = mock(Event::class.java)

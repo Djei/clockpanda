@@ -19,7 +19,7 @@ data class User(
     val calendarProvider: CalendarProvider,
     val calendarConnectionStatus: CalendarConnectionStatus,
     val googleRefreshToken: String?,
-    val metadata: UserMetadata?,
+    val preferences: UserPreferences?,
     val createdAt: Instant = Clock.System.now(),
     val lastUpdatedAt: Instant? = null
 ) {
@@ -32,7 +32,7 @@ data class User(
                 calendarProvider = CalendarProvider.valueOf(record.calendarProvider!!),
                 calendarConnectionStatus = CalendarConnectionStatus.valueOf(record.calendarConnectionStatus!!),
                 googleRefreshToken = record.googleRefreshToken,
-                metadata = record.metadata?.let { UserMetadata.fromJson(it.toString(Charsets.UTF_8)) },
+                preferences = record.preferences?.let { UserPreferences.fromJooqData(it) },
                 createdAt = record.createdAt!!.toInstant().toKotlinInstant(),
                 lastUpdatedAt = record.lastUpdatedAt?.toInstant()?.toKotlinInstant()
             )
@@ -47,7 +47,7 @@ data class User(
             calendarProvider = calendarProvider.name,
             calendarConnectionStatus = calendarConnectionStatus.name,
             googleRefreshToken = googleRefreshToken,
-            metadata = metadata?.toJson()?.toByteArray(Charsets.UTF_8),
+            preferences = preferences?.toJooqData(),
             createdAt = createdAt.toJavaInstant().atOffset(ZoneOffset.UTC),
             lastUpdatedAt = lastUpdatedAt?.toJavaInstant()?.atOffset(ZoneOffset.UTC)
         )
@@ -55,22 +55,32 @@ data class User(
 }
 
 @Serializable
-sealed class UserMetadata {
+sealed interface UserPreferences {
     companion object {
         private val json = Json {
             classDiscriminator = "version_num"
         }
 
-        fun fromJson(value: String) = json.decodeFromString<UserMetadata>(value)
+        private fun fromJson(value: String) = json.decodeFromString<UserPreferences>(value)
+
+        fun fromJooqData(value: ByteArray) = fromJson(value.toString(Charsets.UTF_8))
     }
 
-    fun toJson() = json.encodeToString(this)
+    private fun toJson() = json.encodeToString(this)
+
+    fun toJooqData() = toJson().toByteArray(Charsets.UTF_8)
+
+    val preferredTimeZone: TimeZone
+    val workingHours: WorkingHours
+    val targetFocusTimeHoursPerWeek: Int
 
     @Serializable
     @SerialName("1")
     data class Version1(
-        val preferredTimeZone: TimeZone
-    ) : UserMetadata()
+        override val preferredTimeZone: TimeZone,
+        override val workingHours: WorkingHours,
+        override val targetFocusTimeHoursPerWeek: Int
+    ) : UserPreferences
 }
 
 enum class CalendarProvider {

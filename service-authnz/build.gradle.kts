@@ -27,14 +27,14 @@ tasks {
             rule {
                 limit {
                     counter = "INSTRUCTION"
-                    minimum = BigDecimal(0.30)
+                    minimum = BigDecimal(0.6)
                 }
             }
 
             rule {
                 limit {
                     counter = "BRANCH"
-                    minimum = BigDecimal(0.01)
+                    minimum = BigDecimal(0.4)
                 }
             }
         }

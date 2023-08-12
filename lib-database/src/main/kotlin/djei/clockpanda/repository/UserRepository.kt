@@ -3,8 +3,10 @@ package djei.clockpanda.repository
 import arrow.core.Either
 import djei.clockpanda.jooq.tables.references.USER
 import djei.clockpanda.model.User
+import djei.clockpanda.model.UserPreferences
 import org.jooq.DSLContext
 import org.springframework.stereotype.Repository
+import java.time.OffsetDateTime
 
 @Repository
 class UserRepository {
@@ -27,6 +29,21 @@ class UserRepository {
             .map { user }
     }
 
+    fun updatePreferences(
+        ctx: DSLContext,
+        email: String,
+        preferences: UserPreferences
+    ): Either<UserRepositoryError, Unit> {
+        return Either.catch {
+            ctx.update(USER)
+                .set(USER.PREFERENCES, preferences.toJooqData())
+                .set(USER.LAST_UPDATED_AT, OffsetDateTime.now())
+                .where(USER.EMAIL.eq(email))
+                .execute()
+        }.mapLeft { UserRepositoryError.DatabaseError(it.message) }
+            .map { Unit }
+    }
+
     fun updateGoogleRefreshToken(
         ctx: DSLContext,
         email: String,
@@ -35,6 +52,7 @@ class UserRepository {
         return Either.catch {
             ctx.update(USER)
                 .set(USER.GOOGLE_REFRESH_TOKEN, refreshTokenValue)
+                .set(USER.LAST_UPDATED_AT, OffsetDateTime.now())
                 .where(USER.EMAIL.eq(email))
                 .execute()
         }.mapLeft { UserRepositoryError.DatabaseError(it.message) }

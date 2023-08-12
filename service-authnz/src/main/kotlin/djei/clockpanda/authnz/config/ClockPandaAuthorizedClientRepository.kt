@@ -1,6 +1,7 @@
 package djei.clockpanda.authnz.config
 
 import arrow.core.Either
+import djei.clockpanda.authnz.model.getEmail
 import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
@@ -81,7 +82,7 @@ class ClockPandaAuthorizedClientRepository(
             )
         }
 
-        val email = user.attributes["email"] as String
+        val email = user.getEmail()
         val firstName = user.attributes["given_name"] as String
         val lastName = user.attributes["family_name"] as String
 
@@ -119,7 +120,7 @@ class ClockPandaAuthorizedClientRepository(
                     calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
                     calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
                     googleRefreshToken = refreshToken.tokenValue,
-                    metadata = null
+                    preferences = null
                 )
             )
         } else {
