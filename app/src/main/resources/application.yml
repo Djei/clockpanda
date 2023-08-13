@@ -16,7 +16,7 @@ spring:
           google:
             client_id: ${GOOGLE_CLIENT_ID}
             client_secret: ${GOOGLE_CLIENT_SECRET}
-            scope: openid, profile, email, https://www.googleapis.com/auth/calendar.readonly
+            scope: openid, profile, email, https://www.googleapis.com/auth/calendar.readonly, https://www.googleapis.com/auth/calendar.events.owned
   datasource:
     url: jdbc:sqlite:file:../db.sqlite3
     driver-class-name: org.sqlite.JDBC

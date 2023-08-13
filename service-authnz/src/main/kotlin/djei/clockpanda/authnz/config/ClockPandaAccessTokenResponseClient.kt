@@ -40,7 +40,16 @@ class ClockPandaAccessTokenResponseClient : OAuth2AccessTokenResponseClient<OAut
             throw OAuth2AuthenticationException(
                 OAuth2Error(
                     "server_error",
-                    "Missing required scope to read your primary google calendar",
+                    "Missing required scope to list your calendars to determine your primary calendar",
+                    "https://tools.ietf.org/html/rfc6749#section-5.2"
+                )
+            )
+        }
+        if (!tokenResponse.accessToken.scopes.contains("https://www.googleapis.com/auth/calendar.events.owned")) {
+            throw OAuth2AuthenticationException(
+                OAuth2Error(
+                    "server_error",
+                    "Missing required scope to create events on your primary calendar",
                     "https://tools.ietf.org/html/rfc6749#section-5.2"
                 )
             )
