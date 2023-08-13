@@ -12,3 +12,4 @@ build
 
 # sqlite3 database file when developing locally
 db.sqlite3
+db-test.sqlite3

@@ -6,6 +6,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlin.time.DurationUnit
 
 data class CalendarEvent(
     val id: String,
@@ -17,7 +18,8 @@ data class CalendarEvent(
     private val startDate: LocalDate?,
     private val endDate: LocalDate?,
     val iCalUid: String,
-    val isRecurring: Boolean
+    val isRecurring: Boolean,
+    val owner: String
 ) {
     companion object {
         fun fromGoogleCalendarEvent(googleCalendarEvent: Event): CalendarEvent {
@@ -39,14 +41,15 @@ data class CalendarEvent(
                     LocalDate.parse(googleCalendarEvent.end.date.toStringRfc3339())
                 },
                 iCalUid = googleCalendarEvent.iCalUID,
-                isRecurring = googleCalendarEvent.recurringEventId != null
+                isRecurring = googleCalendarEvent.recurringEventId != null,
+                owner = googleCalendarEvent.organizer?.email ?: "unknown"
             )
         }
     }
 
     // This method simplifies figuring out the logic whether startDate/endDate or startTime/endTime should be used
     // startDate/endDate is used for all-day events and require to be interpreted in the user's timezone
-    fun getTimeSpan(timeZone: TimeZone = TimeZone.UTC): TimeSpan {
+    fun getTimeSpan(timeZone: TimeZone): TimeSpan {
         if (startDate != null && endDate != null) {
             return TimeSpan(
                 start = startDate.atStartOfDayIn(timeZone),
@@ -61,11 +64,26 @@ data class CalendarEvent(
         throw IllegalStateException("CalendarEvent has neither startDate/endDate nor startTime/endTime")
     }
 
-    fun isClockPandaEvent(): Boolean {
-        return title.startsWith(CLOCK_PANDA_EVENT_TITLE_PREFIX)
+    fun getType(): CalendarEventType {
+        return when (title) {
+            CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE -> CalendarEventType.FOCUS_TIME
+            else -> CalendarEventType.EXTERNAL_EVENT
+        }
     }
+
+    fun getDurationInMinutes(timeZone: TimeZone): Int {
+        val timeSpan = getTimeSpan(timeZone)
+        return (timeSpan.end - timeSpan.start).toInt(DurationUnit.MINUTES)
+    }
+}
+
+enum class CalendarEventType {
+    FOCUS_TIME,
+
+    // External event is an event not created by Clock Panda
+    // e.g. an event created directly on Google Calendar that does not respect our event categorization logic
+    EXTERNAL_EVENT
 }
 
 private const val CLOCK_PANDA_EVENT_TITLE_PREFIX = "[ClockPanda]"
 const val CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Focus Time"
-const val CLOCK_PANDA_LUNCH_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Lunch Break"

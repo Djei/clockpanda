@@ -8,4 +8,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-test")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.security:spring-security-test")
+    // This is needed for us to auto-execute the flyway migration scripts on our test database when we run them
+    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation("org.flywaydb:flyway-core")
 }

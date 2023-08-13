@@ -49,9 +49,42 @@ class UserRepositoryTest {
     }
 
     @Test
+    fun `test list should return empty list if no user`() {
+        val result = userRepository.list(dslContext)
+
+        assertThat(result).isEqualTo(emptyList<User>().right())
+    }
+
+    @Test
+    fun `test list should return all users`() {
+        userRepository.create(dslContext, UserFixtures.userWithNoPreferences)
+        userRepository.create(dslContext, UserFixtures.userWithPreferences)
+
+        val result = userRepository.list(dslContext)
+
+        assertThat(result).isEqualTo(
+            listOf(
+                UserFixtures.userWithNoPreferences,
+                UserFixtures.userWithPreferences
+            ).right()
+        )
+    }
+
+    @Test
+    fun `test list should return left value if query fails`() {
+        val mockCtx: DSLContext = mock()
+        val exception = RuntimeException("some error")
+        given { mockCtx.selectFrom(USER) } willThrow { exception }
+
+        val result = userRepository.list(mockCtx)
+
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
+    }
+
+    @Test
     fun `test create should create a user`() {
         val nullValuesUser = User(
-            email = "djei@github.com",
+            email = "djei@email.com",
             firstName = "Djei First Name",
             lastName = "Djei Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
@@ -62,7 +95,7 @@ class UserRepositoryTest {
             lastUpdatedAt = null
         )
         val allValuesUser = User(
-            email = "djei2@github.com",
+            email = "djei2@email.com",
             firstName = "Djei2 First Name",
             lastName = "Djei2 Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
@@ -77,17 +110,17 @@ class UserRepositoryTest {
         val allValuesResult = userRepository.create(dslContext, allValuesUser)
 
         assertThat(nullValuesResult).isEqualTo(nullValuesUser.right())
-        val fetchAfterCreateNullValuesUser = userRepository.fetchByEmail(dslContext, "djei@github.com")
+        val fetchAfterCreateNullValuesUser = userRepository.fetchByEmail(dslContext, "djei@email.com")
         assertThat(fetchAfterCreateNullValuesUser).isEqualTo(nullValuesUser.right())
         assertThat(allValuesResult).isEqualTo(allValuesUser.right())
-        val fetchAfterCreateAllValuesUser = userRepository.fetchByEmail(dslContext, "djei2@github.com")
+        val fetchAfterCreateAllValuesUser = userRepository.fetchByEmail(dslContext, "djei2@email.com")
         assertThat(fetchAfterCreateAllValuesUser).isEqualTo(allValuesUser.right())
     }
 
     @Test
     fun `test create should return left value if query fails`() {
         val allValuesUser = User(
-            email = "djei2@github.com",
+            email = "djei2@email.com",
             firstName = "Djei2 First Name",
             lastName = "Djei2 Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
@@ -109,7 +142,7 @@ class UserRepositoryTest {
     @Test
     fun `test updateMetadata should update metadata column`() {
         val initialUser = User(
-            email = "djei@github.com",
+            email = "djei@email.com",
             firstName = "Djei First Name",
             lastName = "Djei Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
@@ -130,7 +163,7 @@ class UserRepositoryTest {
         userRepository.create(dslContext, initialUser)
         userRepository.updatePreferences(dslContext, initialUser.email, newUserPreferences)
 
-        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@github.com")) {
+        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@email.com")) {
             is Either.Left -> fail("Fetch should succeed")
             is Either.Right -> {
                 val updatedMetadata = fetchAfterUpdateUser.value!!.preferences
@@ -155,7 +188,7 @@ class UserRepositoryTest {
     @Test
     fun `test updateGoogleRefreshToken should update google refresh token column`() {
         val initialUser = User(
-            email = "djei@github.com",
+            email = "djei@email.com",
             firstName = "Djei First Name",
             lastName = "Djei Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
@@ -169,7 +202,7 @@ class UserRepositoryTest {
         userRepository.create(dslContext, initialUser)
         userRepository.updateGoogleRefreshToken(dslContext, initialUser.email, "new-refresh-token")
 
-        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@github.com")) {
+        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@email.com")) {
             is Either.Left -> fail("Fetch should succeed")
             is Either.Right -> {
                 assertThat(fetchAfterUpdateUser.value!!.googleRefreshToken).isEqualTo("new-refresh-token")

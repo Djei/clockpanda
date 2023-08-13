@@ -15,6 +15,7 @@ import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
@@ -289,6 +290,9 @@ class GoogleCalendarApiFacadeTest {
                         )
                         `when`(mockEvent1.iCalUID).thenReturn("ical_uid_1")
                         `when`(mockEvent1.recurringEventId).thenReturn("recurring_event_id_1")
+                        `when`(mockEvent1.organizer).thenReturn(
+                            Event.Organizer().setEmail("organizer_email_1@email.com")
+                        )
                         `when`(mockEvent2.id).thenReturn("event_id_2")
                         `when`(mockEvent2.summary).thenReturn(null)
                         `when`(mockEvent2.description).thenReturn(null)
@@ -300,6 +304,9 @@ class GoogleCalendarApiFacadeTest {
                         )
                         `when`(mockEvent2.iCalUID).thenReturn("ical_uid_2")
                         `when`(mockEvent2.recurringEventId).thenReturn(null)
+                        `when`(mockEvent2.organizer).thenReturn(
+                            Event.Organizer().setEmail(null)
+                        )
                     }
                 }
             }.use {
@@ -322,7 +329,7 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(timeSpan1.end).isEqualTo(Instant.parse("2021-01-10T11:00:00.000Z"))
                         assertThat(calendarEvent1.iCalUid).isEqualTo("ical_uid_1")
                         assertThat(calendarEvent1.isRecurring).isTrue
-                        assertThat(calendarEvent1.isClockPandaEvent()).isTrue
+                        assertThat(calendarEvent1.getType()).isEqualTo(CalendarEventType.FOCUS_TIME)
                         val calendarEvent2 = calendarEvents[1]
                         assertThat(calendarEvent2.id).isEqualTo("event_id_2")
                         assertThat(calendarEvent2.title).isEqualTo("")
@@ -332,7 +339,7 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(timeSpan2.end).isEqualTo(Instant.parse("2021-01-11T05:00:00.000Z"))
                         assertThat(calendarEvent2.iCalUid).isEqualTo("ical_uid_2")
                         assertThat(calendarEvent2.isRecurring).isFalse
-                        assertThat(calendarEvent2.isClockPandaEvent()).isFalse
+                        assertThat(calendarEvent2.getType()).isEqualTo(CalendarEventType.EXTERNAL_EVENT)
                         verify(mockCalendarEventsList).singleEvents = true
                         verify(mockCalendarEventsList).timeMin = DateTime(timeSpan.start.toEpochMilliseconds())
                         verify(mockCalendarEventsList).timeMax = DateTime(timeSpan.end.toEpochMilliseconds())

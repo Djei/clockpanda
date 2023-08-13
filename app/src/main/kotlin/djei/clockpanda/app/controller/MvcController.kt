@@ -16,10 +16,10 @@ class MvcController {
             .sorted()
         model.addAttribute("availableTimeZones", availableTimeZones)
 
-        // available times with 15 minute intervals
+        // available times with 30 minute intervals
         val availableTimes = mutableListOf<String>()
         for (hour in 0..23) {
-            for (minute in 0..45 step 15) {
+            for (minute in 0..30 step 30) {
                 availableTimes.add("%02d:%02d".format(hour, minute))
             }
         }

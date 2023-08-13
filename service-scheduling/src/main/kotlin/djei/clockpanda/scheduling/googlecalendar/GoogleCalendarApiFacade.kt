@@ -20,10 +20,10 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.plus
 import kotlinx.datetime.toJavaInstant
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import java.util.*
 
-@Service
+@Component
 class GoogleCalendarApiFacade(
     @Value("\${spring.security.oauth2.client.registration.google.client_id}")
     private val googleClientId: String,

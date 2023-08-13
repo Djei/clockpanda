@@ -20,3 +20,7 @@ spring:
   datasource:
     url: jdbc:sqlite:file:../db.sqlite3
     driver-class-name: org.sqlite.JDBC
+
+scheduling:
+  solver:
+    secondsSpentTerminationConfig: 60

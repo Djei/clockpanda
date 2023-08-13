@@ -20,6 +20,14 @@ class UserRepository {
             .map { it?.let { User.fromJooqRecord(it) } }
     }
 
+    fun list(ctx: DSLContext): Either<UserRepositoryError, List<User>> {
+        return Either.catch {
+            ctx.selectFrom(USER)
+                .fetch()
+                .map { User.fromJooqRecord(it) }
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
+    }
+
     fun create(ctx: DSLContext, user: User): Either<UserRepositoryError, User> {
         return Either.catch {
             ctx.insertInto(USER)

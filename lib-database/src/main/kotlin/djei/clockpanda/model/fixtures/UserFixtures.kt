@@ -43,13 +43,25 @@ class UserFixtures {
         )
 
         val userWithNoPreferences = User(
-            email = "djei@github.com",
+            email = "djei1@email.com",
             firstName = "Djei First Name",
             lastName = "Djei Last Name",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
             calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
             googleRefreshToken = "refresh-token",
             preferences = null,
+            createdAt = Clock.System.now(),
+            lastUpdatedAt = Clock.System.now()
+        )
+
+        val userWithPreferences = User(
+            email = "djei2@email.com",
+            firstName = "Djei First Name",
+            lastName = "Djei Last Name",
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
+            googleRefreshToken = "refresh-token",
+            preferences = userPreferences,
             createdAt = Clock.System.now(),
             lastUpdatedAt = Clock.System.now()
         )
