@@ -35,7 +35,6 @@ class ClockPandaAuthorizationRequestResolver(
         defaultAuthorizationRequest: OAuth2AuthorizationRequest
     ): OAuth2AuthorizationRequest {
         val additionalParameters = defaultAuthorizationRequest.additionalParameters.toMutableMap()
-        additionalParameters["prompt"] = "consent"
         additionalParameters["access_type"] = "offline"
 
         return OAuth2AuthorizationRequest.from(defaultAuthorizationRequest)
