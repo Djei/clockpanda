@@ -16,7 +16,7 @@ class UserRepository {
             ctx.selectFrom(USER)
                 .where(USER.EMAIL.eq(email))
                 .fetchOne()
-        }.mapLeft { UserRepositoryError.DatabaseError(it.message) }
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
             .map { it?.let { User.fromJooqRecord(it) } }
     }
 
@@ -25,7 +25,7 @@ class UserRepository {
             ctx.insertInto(USER)
                 .set(user.toJooqRecord())
                 .execute()
-        }.mapLeft { UserRepositoryError.DatabaseError(it.message) }
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
             .map { user }
     }
 
@@ -40,7 +40,7 @@ class UserRepository {
                 .set(USER.LAST_UPDATED_AT, OffsetDateTime.now())
                 .where(USER.EMAIL.eq(email))
                 .execute()
-        }.mapLeft { UserRepositoryError.DatabaseError(it.message) }
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
             .map { Unit }
     }
 
@@ -55,7 +55,7 @@ class UserRepository {
                 .set(USER.LAST_UPDATED_AT, OffsetDateTime.now())
                 .where(USER.EMAIL.eq(email))
                 .execute()
-        }.mapLeft { UserRepositoryError.DatabaseError(it.message) }
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
             .map { Unit }
     }
 }

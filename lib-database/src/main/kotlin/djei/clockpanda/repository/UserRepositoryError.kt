@@ -1,6 +1,14 @@
 package djei.clockpanda.repository
 
-sealed class UserRepositoryError(message: String) : Error(message) {
-    data class DatabaseError(val details: String?) :
-        UserRepositoryError("database error: ${details ?: "unknown error"}")
+sealed class UserRepositoryError(
+    message: String,
+    override val cause: Throwable? = null
+) : Error(message, cause) {
+
+    data class DatabaseError(
+        override val cause: Throwable
+    ) : UserRepositoryError(
+        "database error: ${cause.message ?: "unknown error"}",
+        cause
+    )
 }

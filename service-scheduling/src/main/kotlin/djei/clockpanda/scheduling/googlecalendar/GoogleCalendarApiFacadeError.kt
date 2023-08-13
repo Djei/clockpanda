@@ -2,16 +2,29 @@ package djei.clockpanda.scheduling.googlecalendar
 
 import djei.clockpanda.model.User
 
-sealed class GoogleCalendarApiFacadeError(message: String) : Error(message) {
-    data class GoogleAuthApiGetAccessTokenError(val details: String?) :
-        GoogleCalendarApiFacadeError("google auth api get access token error: ${details ?: "unknown error"}")
+sealed class GoogleCalendarApiFacadeError(
+    message: String,
+    override val cause: Throwable? = null
+) : Error(message, cause) {
+    data class GoogleAuthApiGetAccessTokenError(
+        override val cause: Throwable
+    ) : GoogleCalendarApiFacadeError(
+        "google auth api get access token error: ${cause.message ?: "unknown error"}",
+        cause
+    )
 
-    data class GoogleCalendarApiListCalendarListError(val details: String?) :
-        GoogleCalendarApiFacadeError("google calendar api list calendar list error: ${details ?: "unknown error"}")
+    data class GoogleCalendarApiListCalendarListError(
+        override val cause: Throwable
+    ) : GoogleCalendarApiFacadeError(
+        "google calendar api list calendar list error: ${cause.message ?: "unknown error"}",
+        cause
+    )
 
-    data class GoogleCalendarApiNoPrimaryCalendarFoundForUserError(val user: User) :
-        GoogleCalendarApiFacadeError("no primary calendar found for user: ${user.email}")
+    data class GoogleCalendarApiListEventsError(
+        override val cause: Throwable
+    ) : GoogleCalendarApiFacadeError("google calendar api list events error: ${cause.message ?: "unknown error"}")
 
-    data class GoogleCalendarApiListEventsError(val details: String?) :
-        GoogleCalendarApiFacadeError("google calendar api list events error: ${details ?: "unknown error"}")
+    data class GoogleCalendarApiNoPrimaryCalendarFoundForUserError(
+        val user: User
+    ) : GoogleCalendarApiFacadeError("no primary calendar found for user: ${user.email}")
 }

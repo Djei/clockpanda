@@ -54,7 +54,7 @@ class GoogleCalendarApiFacade(
                 nextPageToken = listEventResponse.nextPageToken
             }
             googleCalendarEvents
-        }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(it.message) }
+        }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(it) }
             .map { it.map(CalendarEvent::fromGoogleCalendarEvent) }
     }
 
@@ -65,7 +65,9 @@ class GoogleCalendarApiFacade(
                 .list()
                 .execute()
                 .items
-        }.getOrElse { return GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError(it.message).left() }
+        }.getOrElse {
+            return GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError(it).left()
+        }
 
         val primaryCalendar = calendars?.find { it.isPrimary && it.accessRole == "owner" }
 
@@ -82,7 +84,7 @@ class GoogleCalendarApiFacade(
                 googleClientId,
                 googleClientSecret
             ).execute()
-        }.mapLeft { GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError(it.message) }
+        }.mapLeft { GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError(it) }
             .map {
                 AccessToken(
                     it.accessToken,

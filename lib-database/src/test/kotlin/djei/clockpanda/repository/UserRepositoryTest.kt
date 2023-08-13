@@ -40,11 +40,12 @@ class UserRepositoryTest {
     @Test
     fun `test fetchByEmail should return left value if query fails`() {
         val mockCtx: DSLContext = mock()
-        given { mockCtx.selectFrom(USER) } willThrow { RuntimeException("some error") }
+        val exception = RuntimeException("some error")
+        given { mockCtx.selectFrom(USER) } willThrow { exception }
 
         val result = userRepository.fetchByEmail(mockCtx, "should_not_exist@github.com")
 
-        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError("some error").left())
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
     }
 
     @Test
@@ -97,11 +98,12 @@ class UserRepositoryTest {
             lastUpdatedAt = Clock.System.now()
         )
         val mockCtx: DSLContext = mock()
-        given { mockCtx.insertInto(USER) } willThrow { RuntimeException("some error") }
+        val exception = RuntimeException("some error")
+        given { mockCtx.insertInto(USER) } willThrow { exception }
 
         val result = userRepository.create(mockCtx, allValuesUser)
 
-        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError("some error").left())
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
     }
 
     @Test
@@ -142,11 +144,12 @@ class UserRepositoryTest {
     @Test
     fun `test updateMetadata should return left if query fails`() {
         val mockCtx: DSLContext = mock()
-        given { mockCtx.update(USER) } willThrow { RuntimeException("some error") }
+        val exception = RuntimeException("some error")
+        given { mockCtx.update(USER) } willThrow { exception }
 
         val result = userRepository.updatePreferences(mockCtx, "does not matter", UserFixtures.userPreferences)
 
-        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError("some error").left())
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
     }
 
     @Test
@@ -177,10 +180,11 @@ class UserRepositoryTest {
     @Test
     fun `test updateGoogleRefreshToken should return left value if query fails`() {
         val mockCtx: DSLContext = mock()
-        given { mockCtx.update(USER) } willThrow { RuntimeException("some error") }
+        val exception = RuntimeException("some error")
+        given { mockCtx.update(USER) } willThrow { exception }
 
         val result = userRepository.updateGoogleRefreshToken(mockCtx, "does not matter", "does not matter")
 
-        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError("some error").left())
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
     }
 }
