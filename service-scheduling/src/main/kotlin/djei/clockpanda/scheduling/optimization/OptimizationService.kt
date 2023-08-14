@@ -44,7 +44,7 @@ class OptimizationService(
         const val OPTIMIZATION_RANGE_IN_DAYS = 14
     }
 
-    fun optimizeSchedule(): Either<OptimizationServiceError, List<OptimizationProblem>> {
+    fun optimizeSchedule(): Either<OptimizationServiceError, List<OptimizationServiceResult>> {
         val users = userRepository.list(dslContext)
             .getOrElse { return OptimizationServiceError.UserRepositoryError(it).left() }
         return users.map { user ->
@@ -54,7 +54,7 @@ class OptimizationService(
                 val solver = getOptimizationProblemSolverFactory().buildSolver()
                 val solution = solver.solve(problem)
                 logger.info("Scheduled optimized for user ${user.email}")
-                solution
+                OptimizationServiceResult.fromSolvedOptimizationProblem(solution)
             }.getOrElse { return OptimizationServiceError.SolverError(it).left() }
         }.right()
     }
@@ -78,10 +78,13 @@ class OptimizationService(
         ).getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
 
         val existingSchedule = userCalendarEvents
-            // We ignore existing focus time since this is what we are going to optimize
+            // We ignore existing focus time from existing schedule since optimization will add them back
             .filter { it.getType() != CalendarEventType.FOCUS_TIME }
-            .map {
-                Event.fromCalendarEvent(it, userPreferences.preferredTimeZone)
+            .map { calendarEvent ->
+                Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
+                    .getOrElse { error ->
+                        return OptimizationServiceError.EventError(error).left()
+                    }
             }
         // We artificially add 1 focus time event planning entities to be optimized by the solver per day in the optimization range
         // This is a bit of a hack as we need to investigate if it is possible to add planning entities dynamically
@@ -122,5 +125,22 @@ class OptimizationService(
             )
             .withTerminationConfig(TerminationConfig().withSecondsSpentLimit(solverSecondsSpentTerminationConfig))
         return SolverFactory.create(solverConfig)
+    }
+
+    data class OptimizationServiceResult(
+        val user: User,
+        val optimizationRange: TimeSpan,
+        val focusTimes: List<Event>
+    ) {
+        companion object {
+            fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizationServiceResult {
+                return OptimizationServiceResult(
+                    user = solvedOptimizationProblem.users.first(),
+                    optimizationRange = solvedOptimizationProblem.optimizationRange,
+                    focusTimes = solvedOptimizationProblem.schedule
+                        .filter { it.type == CalendarEventType.FOCUS_TIME }
+                )
+            }
+        }
     }
 }

@@ -1,5 +1,8 @@
 package djei.clockpanda.scheduling.model
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
 import com.google.api.services.calendar.model.Event
 import djei.clockpanda.model.CalendarProvider
 import kotlinx.datetime.Instant
@@ -49,19 +52,21 @@ data class CalendarEvent(
 
     // This method simplifies figuring out the logic whether startDate/endDate or startTime/endTime should be used
     // startDate/endDate is used for all-day events and require to be interpreted in the user's timezone
-    fun getTimeSpan(timeZone: TimeZone): TimeSpan {
+    fun getTimeSpan(timeZone: TimeZone): Either<CalendarEventError, TimeSpan> {
         if (startDate != null && endDate != null) {
             return TimeSpan(
                 start = startDate.atStartOfDayIn(timeZone),
                 end = endDate.atStartOfDayIn(timeZone)
-            )
+            ).right()
         } else if (startTime != null && endTime != null) {
             return TimeSpan(
                 start = startTime,
                 end = endTime
-            )
+            ).right()
         }
-        throw IllegalStateException("CalendarEvent has neither startDate/endDate nor startTime/endTime")
+        return CalendarEventError.GetTimeSpanError(
+            IllegalStateException("CalendarEvent has neither startDate/endDate nor startTime/endTime")
+        ).left()
     }
 
     fun getType(): CalendarEventType {
@@ -71,9 +76,12 @@ data class CalendarEvent(
         }
     }
 
-    fun getDurationInMinutes(timeZone: TimeZone): Int {
-        val timeSpan = getTimeSpan(timeZone)
-        return (timeSpan.end - timeSpan.start).toInt(DurationUnit.MINUTES)
+    fun getDurationInMinutes(timeZone: TimeZone): Either<CalendarEventError, Int> {
+        return getTimeSpan(timeZone).mapLeft {
+            it
+        }.map {
+            (it.end - it.start).toInt(DurationUnit.MINUTES)
+        }
     }
 }
 

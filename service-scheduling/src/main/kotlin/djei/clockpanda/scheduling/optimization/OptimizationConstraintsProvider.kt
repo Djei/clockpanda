@@ -8,15 +8,17 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider
 import ai.timefold.solver.core.api.score.stream.Joiners
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
+import kotlinx.datetime.toLocalDateTime
 
 class OptimizationConstraintsProvider : ConstraintProvider {
     // Constraint priority design
-    // 1. Focus time events should not overlap with other events: -1000 point for one violation that should completely overshadow other constraints
-    // 2. TODO Focus time should respect user working hours
+    // 1. Focus time events should not overlap with other events: -1000 point for one violation
+    // 2. Focus time should respect user working hours: -1000 point for one violation
     // 3. Focus time total amount not meeting the target: -1 point per missing 15 minutes - assuming 60 hours target -> -240 points maximum score
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
+            focusTimeEventsOutsideOfWorkingHours(constraintFactory),
             focusTimeTotalAmountNotMeetingTheTarget(constraintFactory)
         )
     }
@@ -33,6 +35,38 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             // Penalize by 1000 points for each overlapping pair
             .penalize(HardSoftScore.ONE_HARD) { _, _ -> 1000 }
             .asConstraint("Focus time events should not overlap with other events")
+    }
+
+    fun focusTimeEventsOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
+        return factory.forEach(Event::class.java)
+            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .join(
+                User::class.java,
+                Joiners.equal(Event::owner, User::email)
+            )
+            .penalize(HardSoftScore.ONE_HARD) { event, user ->
+                val userPreferences = user.preferences
+                if (userPreferences == null) {
+                    0
+                } else {
+                    val userPreferredTimeZone = userPreferences.preferredTimeZone
+                    val eventLocalStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
+                    val eventLocalEndTime = event.getEndTime().toLocalDateTime(userPreferredTimeZone)
+                    // We only support specifying one working hour block per day for now
+                    val workingHoursForEvent = userPreferences.workingHours[eventLocalStartTime.dayOfWeek]?.get(0)
+                    if (workingHoursForEvent == null) {
+                        0
+                    } else {
+                        // Penalize by 1000 points for each event that is outside working hours
+                        if (eventLocalStartTime.time < workingHoursForEvent.start || eventLocalEndTime.time > workingHoursForEvent.end) {
+                            1000
+                        } else {
+                            0
+                        }
+                    }
+                }
+            }
+            .asConstraint("Focus time events should not be outside working hours")
     }
 
     fun focusTimeTotalAmountNotMeetingTheTarget(factory: ConstraintFactory): Constraint {

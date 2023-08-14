@@ -16,7 +16,7 @@ import kotlinx.datetime.toLocalDateTime
 @NoArg
 @PlanningSolution
 class OptimizationProblem(
-    private val optimizationRange: TimeSpan,
+    val optimizationRange: TimeSpan,
     @PlanningEntityCollectionProperty
     val schedule: List<Event>,
     @ProblemFactCollectionProperty

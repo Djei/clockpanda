@@ -86,9 +86,8 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
             is Either.Right -> {
                 assertThat(result.value).hasSize(1)
                 val solvedOptimizationProblem = result.value[0]
-                assertThat(solvedOptimizationProblem.users).hasSize(1)
-                assertThat(solvedOptimizationProblem.users[0]).isEqualTo(UserFixtures.userWithPreferences)
-                assertThat(solvedOptimizationProblem.schedule).hasSize(1 + OPTIMIZATION_RANGE_IN_DAYS)
+                assertThat(solvedOptimizationProblem.user).isEqualTo(UserFixtures.userWithPreferences)
+                assertThat(solvedOptimizationProblem.focusTimes).hasSize(OPTIMIZATION_RANGE_IN_DAYS)
             }
         }
     }

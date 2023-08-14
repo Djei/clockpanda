@@ -8,14 +8,18 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.Calendar
+import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventDateTime
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.AccessToken
 import com.google.auth.oauth2.OAuth2Credentials
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEvent
+import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
 import kotlinx.datetime.plus
 import kotlinx.datetime.toJavaInstant
 import org.springframework.beans.factory.annotation.Value
@@ -60,10 +64,37 @@ class GoogleCalendarApiFacade(
             .map { it.map(CalendarEvent::fromGoogleCalendarEvent) }
     }
 
+    fun createCalendarEvent(
+        user: User,
+        title: String,
+        description: String? = null,
+        startTime: Instant,
+        endTime: Instant
+    ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
+        val accessToken = getAccessToken(user).getOrElse { return it.left() }
+        val calendarService = getCalendarService(accessToken)
+
+        return Either.catch {
+            val eventToInsert = Event()
+            eventToInsert.summary = title
+            eventToInsert.description = description
+            eventToInsert.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
+            eventToInsert.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
+            val result = calendarService.events().insert(
+                "primary",
+                eventToInsert
+            ).execute()
+            CalendarEvent.fromGoogleCalendarEvent(result)
+        }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(it) }
+    }
+
     fun deleteCalendarEvent(
         user: User,
         calendarEvent: CalendarEvent
     ): Either<GoogleCalendarApiFacadeError, Unit> {
+        if (calendarEvent.getType() == CalendarEventType.EXTERNAL_EVENT) {
+            return GoogleCalendarApiFacadeError.NotAllowedToDeleteExternalEventError(calendarEvent.id).left()
+        }
         val accessToken = getAccessToken(user).getOrElse { return it.left() }
         val calendarService = getCalendarService(accessToken)
 

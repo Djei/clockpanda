@@ -20,6 +20,13 @@ sealed class OptimizationServiceError(
         googleCalendarApiFacadeError
     )
 
+    data class EventError(
+        val eventError: djei.clockpanda.scheduling.optimization.EventError
+    ) : OptimizationServiceError(
+        "event error: ${eventError.message ?: "unknown error"}",
+        eventError
+    )
+
     data class UserHasNoPreferencesError(val primaryUser: User) : OptimizationServiceError(
         "user ${primaryUser.email} has no preferences"
     )

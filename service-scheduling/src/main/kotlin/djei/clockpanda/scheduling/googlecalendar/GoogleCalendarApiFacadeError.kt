@@ -18,7 +18,18 @@ sealed class GoogleCalendarApiFacadeError(
         cause
     )
 
+    data class GoogleCalendarApiCreateEventError(
+        override val cause: Throwable
+    ) : GoogleCalendarApiFacadeError(
+        "google calendar api create event error: ${cause.message ?: "unknown error"}",
+        cause
+    )
+
     data class GoogleCalendarApiListEventsError(
         override val cause: Throwable
     ) : GoogleCalendarApiFacadeError("google calendar api list events error: ${cause.message ?: "unknown error"}")
+
+    data class NotAllowedToDeleteExternalEventError(
+        val externalEventId: String
+    ) : GoogleCalendarApiFacadeError("google calendar api not allowed to delete external event: $externalEventId")
 }

@@ -103,6 +103,76 @@ class OptimizationConstraintsProviderTest {
     }
 
     @Test
+    fun `penalize if focus time is outside of user preferences working hours`() {
+        val focusTimeOutsideWorkingHours = Event(
+            id = "1",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-01T08:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val focusTimeInsideWorkingHours = Event(
+            id = "2",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-01T14:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = UserFixtures.userWithPreferences.email
+        )
+
+        val solution = OptimizationProblem(
+            optimizationRange = TimeSpan(
+                start = Instant.parse("2021-01-01T00:00:00Z"),
+                end = Instant.parse("2021-01-15T00:00:00Z")
+            ),
+            schedule = listOf(focusTimeOutsideWorkingHours, focusTimeInsideWorkingHours),
+            users = listOf(UserFixtures.userWithPreferences)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsOutsideOfWorkingHours)
+            .givenSolution(solution)
+            .penalizesBy(1000)
+    }
+
+    @Test
+    fun `if user preferences is null, consider everything is valid working hours and solver never penalizes`() {
+        val focusTimeOutsideWorkingHours = Event(
+            id = "1",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-01T08:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = UserFixtures.userWithNoPreferences.email
+        )
+        val focusTimeInsideWorkingHours = Event(
+            id = "2",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-01T14:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = UserFixtures.userWithNoPreferences.email
+        )
+
+        val solution = OptimizationProblem(
+            optimizationRange = TimeSpan(
+                start = Instant.parse("2021-01-01T00:00:00Z"),
+                end = Instant.parse("2021-01-15T00:00:00Z")
+            ),
+            schedule = listOf(focusTimeOutsideWorkingHours, focusTimeInsideWorkingHours),
+            users = listOf(UserFixtures.userWithNoPreferences)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsOutsideOfWorkingHours)
+            .givenSolution(solution)
+            .penalizesBy(0)
+    }
+
+    @Test
     fun `penalize if total focus time does not meet user target`() {
         val threeHoursOfFocusTime = Event(
             id = "1",
@@ -149,7 +219,7 @@ class OptimizationConstraintsProviderTest {
     }
 
     @Test
-    fun `if user has no preferences, target focus time is 0`() {
+    fun `if user preferences is null, target focus time is 0 and solver never penalizes`() {
         val threeHoursOfFocusTime = Event(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
@@ -157,7 +227,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 12,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.userWithNoPreferences.email
         )
 
         val solution = OptimizationProblem(
