@@ -3,43 +3,12 @@ package djei.clockpanda.scheduling.model
 import arrow.core.Either
 import djei.clockpanda.model.CalendarProvider
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 
 class CalendarEventTest {
-
-    private val goodStartEndDateCalendarEvent = CalendarEvent(
-        id = "id",
-        title = "title",
-        description = "description",
-        calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
-        startTime = null,
-        endTime = null,
-        startDate = LocalDate(2021, 1, 1),
-        endDate = LocalDate(2021, 1, 2),
-        iCalUid = "iCalUid",
-        isRecurring = false,
-        owner = "owner"
-    )
-
-    private val goodStartEndTimeCalendarEvent = CalendarEvent(
-        id = "id",
-        title = "title",
-        description = "description",
-        calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
-        startTime = Instant.parse("2021-01-01T00:00:00Z"),
-        endTime = Instant.parse("2021-01-01T01:00:00Z"),
-        startDate = null,
-        endDate = null,
-        iCalUid = "iCalUid",
-        isRecurring = false,
-        owner = "owner"
-    )
-
     private val nullStartDateTimeCalendarEvent = CalendarEvent(
         id = "id",
         title = "title",

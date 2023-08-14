@@ -15,6 +15,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
+import kotlin.time.DurationUnit
 
 @NoArg
 @PlanningEntity
@@ -58,6 +59,16 @@ class Event(
             (durationInTimeGrains ?: 0) * TimeGrain.GRAIN_LENGTH_IN_MINUTES,
             DateTimeUnit.MINUTE
         )
+    }
+
+    fun computeOverlapInMinutes(other: Event): Int {
+        val overlapStart = maxOf(getStartTime(), other.getStartTime())
+        val overlapEnd = minOf(getEndTime(), other.getEndTime())
+        return if (overlapStart < overlapEnd) {
+            (overlapEnd - overlapStart).toInt(DurationUnit.MINUTES)
+        } else {
+            0
+        }
     }
 
     fun getDurationInMinutes(): Int {
