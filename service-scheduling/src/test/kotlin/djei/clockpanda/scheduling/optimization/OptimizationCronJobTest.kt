@@ -39,7 +39,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
             GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(RuntimeException("some error")).left()
         )
 
-        optimizationCronJob.runOptimization()
+        optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade, never()).deleteCalendarEvent(any(), any())
         verify(googleCalendarApiFacade, never()).createCalendarEvent(any(), any(), anyOrNull(), any(), any())
@@ -58,7 +58,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
             GoogleCalendarApiFacadeError.GoogleCalendarApiDeleteEventError(RuntimeException("some error")).left()
         }
 
-        optimizationCronJob.runOptimization()
+        optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade).deleteCalendarEvent(
             eq(UserFixtures.userWithPreferences),
@@ -84,7 +84,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
             GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(RuntimeException("some error")).left()
         }
 
-        optimizationCronJob.runOptimization()
+        optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade).deleteCalendarEvent(
             eq(UserFixtures.userWithPreferences),
@@ -121,7 +121,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 CalendarEventFixtures.focusTimeCalendarEvent1.right()
             }
 
-        optimizationCronJob.runOptimization()
+        optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade).deleteCalendarEvent(
             eq(UserFixtures.userWithPreferences),

@@ -17,6 +17,7 @@ import arrow.core.right
 import djei.clockpanda.model.User
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade
+import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Clock
@@ -44,7 +45,7 @@ class OptimizationService(
         const val OPTIMIZATION_RANGE_IN_DAYS = 14
     }
 
-    fun optimizeSchedule(): Either<OptimizationServiceError, List<OptimizationServiceResult>> {
+    fun calculateOptimizedSchedule(): Either<OptimizationServiceError, List<OptimizedScheduleResult>> {
         val users = userRepository.list(dslContext)
             .getOrElse { return OptimizationServiceError.UserRepositoryError(it).left() }
         return users.map { user ->
@@ -54,7 +55,7 @@ class OptimizationService(
                 val solver = getOptimizationProblemSolverFactory().buildSolver()
                 val solution = solver.solve(problem)
                 logger.info("Scheduled optimized for user ${user.email}")
-                OptimizationServiceResult.fromSolvedOptimizationProblem(solution)
+                OptimizedScheduleResult.fromSolvedOptimizationProblem(solution)
             }.getOrElse { return OptimizationServiceError.SolverError(it).left() }
         }.right()
     }
@@ -127,14 +128,49 @@ class OptimizationService(
         return SolverFactory.create(solverConfig)
     }
 
-    data class OptimizationServiceResult(
+    fun syncOptimizedScheduleWithUserCalendar(
+        optimizedScheduleResult: OptimizedScheduleResult
+    ): Either<OptimizationServiceError, Unit> {
+        val user = optimizedScheduleResult.user
+        val optimizationRange = optimizedScheduleResult.optimizationRange
+        val existingFocusTimes = googleCalendarApiFacade.listCalendarEvents(user, optimizationRange)
+            .getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
+            .filter { it.getType() == CalendarEventType.FOCUS_TIME }
+        val newFocusTimes = optimizedScheduleResult.focusTimes
+        // Delete existing focus times
+        existingFocusTimes.forEach { it ->
+            googleCalendarApiFacade.deleteCalendarEvent(user, it)
+                .getOrElse {
+                    return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                }
+        }
+        // Create the new focus times
+        newFocusTimes
+            .filter {
+                it.getDurationInMinutes() != 0
+            }
+            .forEach { it ->
+                googleCalendarApiFacade.createCalendarEvent(
+                    user = user,
+                    title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                    description = null,
+                    startTime = it.getStartTime(),
+                    endTime = it.getEndTime()
+                ).getOrElse {
+                    return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                }
+            }
+        return Unit.right()
+    }
+
+    data class OptimizedScheduleResult(
         val user: User,
         val optimizationRange: TimeSpan,
         val focusTimes: List<Event>
     ) {
         companion object {
-            fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizationServiceResult {
-                return OptimizationServiceResult(
+            fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizedScheduleResult {
+                return OptimizedScheduleResult(
                     user = solvedOptimizationProblem.users.first(),
                     optimizationRange = solvedOptimizationProblem.optimizationRange,
                     focusTimes = solvedOptimizationProblem.schedule

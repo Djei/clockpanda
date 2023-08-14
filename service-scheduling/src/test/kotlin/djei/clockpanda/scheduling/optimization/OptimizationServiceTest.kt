@@ -31,7 +31,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
     fun `test optimizeSchedule returns left if user has no preferences`() {
         userRepository.create(dslContext, UserFixtures.userWithNoPreferences)
 
-        when (val result = optimizationService.optimizeSchedule()) {
+        when (val result = optimizationService.calculateOptimizedSchedule()) {
             is Either.Left -> {
                 val error = result.value
                 assertThat(error).isInstanceOf(OptimizationServiceError.UserHasNoPreferencesError::class.java)
@@ -56,7 +56,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
             GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(RuntimeException("some error")).left()
         )
 
-        when (val result = optimizationService.optimizeSchedule()) {
+        when (val result = optimizationService.calculateOptimizedSchedule()) {
             is Either.Left -> {
                 val error = result.value
                 assertThat(error).isInstanceOf(OptimizationServiceError.GoogleCalendarApiFacadeError::class.java)
@@ -80,7 +80,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
             listOf(CalendarEventFixtures.externalTypeCalendarEvent).right()
         )
 
-        when (val result = optimizationService.optimizeSchedule()) {
+        when (val result = optimizationService.calculateOptimizedSchedule()) {
             is Either.Left -> fail("This should return right", result.value)
 
             is Either.Right -> {
