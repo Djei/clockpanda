@@ -5,8 +5,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.Calendar
-import com.google.api.services.calendar.model.CalendarList
-import com.google.api.services.calendar.model.CalendarListEntry
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
 import com.google.api.services.calendar.model.Events
@@ -17,6 +15,7 @@ import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
+import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -32,6 +31,7 @@ import org.mockito.Mockito.mockConstructionWithAnswer
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 
@@ -59,13 +59,15 @@ class GoogleCalendarApiFacadeTest {
 
     @Test
     fun `test listCalendarEvents - failed to retrieve user access token`() {
+        // Clear access token cache to prevent us from getting one and force the retrieval failure
+        googleCalendarApiFacade.clearAccessTokenCache()
         mockConstructionWithAnswer(
             GoogleRefreshTokenRequest::class.java,
             { throw RuntimeException("failed to refresh token") }
         ).use {
             val result = googleCalendarApiFacade.listCalendarEvents(
                 user,
-                timeSpan,
+                timeSpan
             )
 
             when (result) {
@@ -75,98 +77,7 @@ class GoogleCalendarApiFacadeTest {
                     assertThat(error.message).isEqualTo("google auth api get access token error: failed to refresh token")
                 }
 
-                is Either.Right -> fail("This should have failed")
-            }
-        }
-    }
-
-    @Test
-    fun `test listCalendarEvents - failed to retrieve user primary calendar`() {
-        mockConstruction(
-            GoogleRefreshTokenRequest::class.java
-        ) { mock, _ ->
-            `when`(mock.execute()).thenReturn(
-                GoogleTokenResponse()
-                    .setAccessToken("access_token")
-                    .setExpiresInSeconds(3600L)
-            )
-        }.use {
-            mockConstruction(
-                Calendar.Builder::class.java
-            ) { mockBuilder, _ ->
-                val mockCalendar = mock(Calendar::class.java)
-                `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
-                `when`(mockBuilder.build()).thenReturn(mockCalendar)
-                `when`(mockCalendar.calendarList()).thenThrow(RuntimeException("failed to execute calendar list"))
-            }.use {
-                val result = googleCalendarApiFacade.listCalendarEvents(
-                    user,
-                    timeSpan,
-                )
-
-                when (result) {
-                    is Either.Left -> {
-                        assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError::class.java)
-                        val error = result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError
-                        assertThat(error.message).isEqualTo("google calendar api list calendar list error: failed to execute calendar list")
-                    }
-
-                    is Either.Right -> fail("This should have failed")
-                }
-            }
-        }
-    }
-
-    @Test
-    fun `test listCalendarEvents - no primary calendar found`() {
-        mockConstruction(
-            GoogleRefreshTokenRequest::class.java
-        ) { mock, _ ->
-            `when`(mock.execute()).thenReturn(
-                GoogleTokenResponse()
-                    .setAccessToken("access_token")
-                    .setExpiresInSeconds(3600L)
-            )
-        }.use {
-            mockConstruction(
-                Calendar.Builder::class.java
-            ) { mockBuilder, _ ->
-                val mockCalendar = mock(Calendar::class.java)
-                val mockCalendarCalendarList = mock(Calendar.CalendarList::class.java)
-                val mockCalendarCalendarListList = mock(Calendar.CalendarList.List::class.java)
-                val mockCalendarList = mock(CalendarList::class.java)
-                val mockNonPrimaryCalendarListEntry = mock(CalendarListEntry::class.java)
-                val mockNonOwnerCalendarListEntry = mock(CalendarListEntry::class.java)
-                `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
-                `when`(mockBuilder.build()).thenReturn(mockCalendar)
-                `when`(mockCalendar.calendarList()).thenReturn(mockCalendarCalendarList)
-                `when`(mockCalendarCalendarList.list()).thenReturn(mockCalendarCalendarListList)
-                `when`(mockCalendarCalendarListList.execute()).thenReturn(mockCalendarList)
-                `when`(mockCalendarList.items).thenReturn(
-                    listOf(
-                        mockNonPrimaryCalendarListEntry,
-                        mockNonOwnerCalendarListEntry
-                    )
-                )
-                `when`(mockNonPrimaryCalendarListEntry.isPrimary).thenReturn(false)
-                `when`(mockNonOwnerCalendarListEntry.isPrimary).thenReturn(true)
-                `when`(mockNonOwnerCalendarListEntry.accessRole).thenReturn("reader")
-            }.use {
-                val result = googleCalendarApiFacade.listCalendarEvents(
-                    user,
-                    timeSpan,
-                )
-
-                when (result) {
-                    is Either.Left -> {
-                        assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.GoogleCalendarApiNoPrimaryCalendarFoundForUserError::class.java)
-                        val error =
-                            result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiNoPrimaryCalendarFoundForUserError
-                        assertThat(error.message).isEqualTo("no primary calendar found for user: djei2@github.com")
-                    }
-
-                    is Either.Right -> fail("This should have failed")
-                }
+                is Either.Right -> fail("This should have returned left value")
             }
         }
     }
@@ -184,36 +95,15 @@ class GoogleCalendarApiFacadeTest {
         }.use {
             mockConstruction(
                 Calendar.Builder::class.java
-            ) { mockBuilder, context ->
+            ) { mockBuilder, _ ->
                 val mockCalendar = mock(Calendar::class.java)
                 `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
                 `when`(mockBuilder.build()).thenReturn(mockCalendar)
-                // Our code instantiates 2 calendar services
-                // First time, we mock what's necessary for fetching the primary calendar
-                // Second time, we mock what's necessary for fetching the events on the primary calendar
-                when (context.count) {
-                    1 -> {
-                        val mockCalendarCalendarList = mock(Calendar.CalendarList::class.java)
-                        val mockCalendarCalendarListList = mock(Calendar.CalendarList.List::class.java)
-                        val mockCalendarList = mock(CalendarList::class.java)
-                        val mockCalendarListEntry = mock(CalendarListEntry::class.java)
-                        `when`(mockCalendar.calendarList()).thenReturn(mockCalendarCalendarList)
-                        `when`(mockCalendarCalendarList.list()).thenReturn(mockCalendarCalendarListList)
-                        `when`(mockCalendarCalendarListList.execute()).thenReturn(mockCalendarList)
-                        `when`(mockCalendarList.items).thenReturn(listOf(mockCalendarListEntry))
-                        `when`(mockCalendarListEntry.id).thenReturn("calendar_id")
-                        `when`(mockCalendarListEntry.isPrimary).thenReturn(true)
-                        `when`(mockCalendarListEntry.accessRole).thenReturn("owner")
-                    }
-
-                    2 -> {
-                        `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to execute events list"))
-                    }
-                }
+                `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to execute events list"))
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    timeSpan,
+                    timeSpan
                 )
 
                 when (result) {
@@ -223,7 +113,7 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(error.message).isEqualTo("google calendar api list events error: failed to execute events list")
                     }
 
-                    is Either.Right -> fail("This should have failed")
+                    is Either.Right -> fail("This should have returned left value")
                 }
             }
         }
@@ -239,80 +129,59 @@ class GoogleCalendarApiFacadeTest {
             `when`(mock.execute()).thenReturn(
                 GoogleTokenResponse()
                     .setAccessToken("access_token")
-                    .setExpiresInSeconds(3600L)
+                    .setExpiresInSeconds(0L)
             )
         }.use {
             mockConstruction(
                 Calendar.Builder::class.java
-            ) { mockBuilder, context ->
+            ) { mockBuilder, _ ->
                 val mockCalendar = mock(Calendar::class.java)
                 `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
                 `when`(mockBuilder.build()).thenReturn(mockCalendar)
-                // Our code instantiates 2 calendar services
-                // First time, we mock what's necessary for fetching the primary calendar
-                // Second time, we mock what's necessary for fetching the events on the primary calendar
-                when (context.count) {
-                    1 -> {
-                        val mockCalendarCalendarList = mock(Calendar.CalendarList::class.java)
-                        val mockCalendarCalendarListList = mock(Calendar.CalendarList.List::class.java)
-                        val mockCalendarList = mock(CalendarList::class.java)
-                        val mockCalendarListEntry = mock(CalendarListEntry::class.java)
-                        `when`(mockCalendar.calendarList()).thenReturn(mockCalendarCalendarList)
-                        `when`(mockCalendarCalendarList.list()).thenReturn(mockCalendarCalendarListList)
-                        `when`(mockCalendarCalendarListList.execute()).thenReturn(mockCalendarList)
-                        `when`(mockCalendarList.items).thenReturn(listOf(mockCalendarListEntry))
-                        `when`(mockCalendarListEntry.id).thenReturn("calendar_id")
-                        `when`(mockCalendarListEntry.isPrimary).thenReturn(true)
-                        `when`(mockCalendarListEntry.accessRole).thenReturn("owner")
-                    }
-
-                    2 -> {
-                        val mockEvents = mock(Events::class.java)
-                        val mockEvent1 = mock(Event::class.java)
-                        val mockEvent2 = mock(Event::class.java)
-                        `when`(mockCalendar.events()).thenReturn(mockCalendarEvents)
-                        `when`(mockCalendarEvents.list(any())).thenReturn(mockCalendarEventsList)
-                        `when`(mockCalendarEventsList.execute()).thenReturn(mockEvents)
-                        `when`(mockEvents.items)
-                            .thenReturn(listOf(mockEvent1))
-                            .thenReturn(listOf(mockEvent2))
-                        `when`(mockEvents.nextPageToken)
-                            .thenReturn("next_page_token")
-                            .thenReturn(null)
-                        `when`(mockEvent1.id).thenReturn("event_id_1")
-                        `when`(mockEvent1.summary).thenReturn(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
-                        `when`(mockEvent1.description).thenReturn("description")
-                        `when`(mockEvent1.start).thenReturn(
-                            EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-10T10:00:00.000Z"))
-                        )
-                        `when`(mockEvent1.end).thenReturn(
-                            EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-10T11:00:00.000Z"))
-                        )
-                        `when`(mockEvent1.iCalUID).thenReturn("ical_uid_1")
-                        `when`(mockEvent1.recurringEventId).thenReturn("recurring_event_id_1")
-                        `when`(mockEvent1.organizer).thenReturn(
-                            Event.Organizer().setEmail("organizer_email_1@email.com")
-                        )
-                        `when`(mockEvent2.id).thenReturn("event_id_2")
-                        `when`(mockEvent2.summary).thenReturn(null)
-                        `when`(mockEvent2.description).thenReturn(null)
-                        `when`(mockEvent2.start).thenReturn(
-                            EventDateTime().setDate(DateTime.parseRfc3339("2021-01-10"))
-                        )
-                        `when`(mockEvent2.end).thenReturn(
-                            EventDateTime().setDate(DateTime.parseRfc3339("2021-01-11"))
-                        )
-                        `when`(mockEvent2.iCalUID).thenReturn("ical_uid_2")
-                        `when`(mockEvent2.recurringEventId).thenReturn(null)
-                        `when`(mockEvent2.organizer).thenReturn(
-                            Event.Organizer().setEmail(null)
-                        )
-                    }
-                }
+                val mockEvents = mock(Events::class.java)
+                val mockEvent1 = mock(Event::class.java)
+                val mockEvent2 = mock(Event::class.java)
+                `when`(mockCalendar.events()).thenReturn(mockCalendarEvents)
+                `when`(mockCalendarEvents.list(any())).thenReturn(mockCalendarEventsList)
+                `when`(mockCalendarEventsList.execute()).thenReturn(mockEvents)
+                `when`(mockEvents.items)
+                    .thenReturn(listOf(mockEvent1))
+                    .thenReturn(listOf(mockEvent2))
+                `when`(mockEvents.nextPageToken)
+                    .thenReturn("next_page_token")
+                    .thenReturn(null)
+                `when`(mockEvent1.id).thenReturn("event_id_1")
+                `when`(mockEvent1.summary).thenReturn(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
+                `when`(mockEvent1.description).thenReturn("description")
+                `when`(mockEvent1.start).thenReturn(
+                    EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-10T10:00:00.000Z"))
+                )
+                `when`(mockEvent1.end).thenReturn(
+                    EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-10T11:00:00.000Z"))
+                )
+                `when`(mockEvent1.iCalUID).thenReturn("ical_uid_1")
+                `when`(mockEvent1.recurringEventId).thenReturn("recurring_event_id_1")
+                `when`(mockEvent1.organizer).thenReturn(
+                    Event.Organizer().setEmail("organizer_email_1@email.com")
+                )
+                `when`(mockEvent2.id).thenReturn("event_id_2")
+                `when`(mockEvent2.summary).thenReturn(null)
+                `when`(mockEvent2.description).thenReturn(null)
+                `when`(mockEvent2.start).thenReturn(
+                    EventDateTime().setDate(DateTime.parseRfc3339("2021-01-10"))
+                )
+                `when`(mockEvent2.end).thenReturn(
+                    EventDateTime().setDate(DateTime.parseRfc3339("2021-01-11"))
+                )
+                `when`(mockEvent2.iCalUID).thenReturn("ical_uid_2")
+                `when`(mockEvent2.recurringEventId).thenReturn(null)
+                `when`(mockEvent2.organizer).thenReturn(
+                    Event.Organizer().setEmail(null)
+                )
             }.use {
                 val result = googleCalendarApiFacade.listCalendarEvents(
                     user,
-                    timeSpan,
+                    timeSpan
                 )
 
                 when (result) {
@@ -346,6 +215,109 @@ class GoogleCalendarApiFacadeTest {
                         verify(mockCalendarEventsList).orderBy = "startTime"
                         verify(mockCalendarEventsList).pageToken = "next_page_token"
                         verify(mockCalendarEventsList, times(2)).execute()
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `test deleteCalendarEvent - failed to retrieve user access token`() {
+        // Clear access token cache to prevent us from getting one and force the retrieval failure
+        googleCalendarApiFacade.clearAccessTokenCache()
+        mockConstructionWithAnswer(
+            GoogleRefreshTokenRequest::class.java,
+            { throw RuntimeException("failed to refresh token") }
+        ).use {
+            val result = googleCalendarApiFacade.deleteCalendarEvent(
+                user,
+                CalendarEventFixtures.externalTypeCalendarEvent
+            )
+
+            when (result) {
+                is Either.Left -> {
+                    assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError::class.java)
+                    val error = result.value as GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError
+                    assertThat(error.message).isEqualTo("google auth api get access token error: failed to refresh token")
+                }
+
+                is Either.Right -> fail("This should have failed")
+            }
+        }
+    }
+
+    @Test
+    fun `test deleteCalendarEvent - call to google calendar api failed`() {
+        mockConstruction(
+            GoogleRefreshTokenRequest::class.java
+        ) { mock, _ ->
+            `when`(mock.execute()).thenReturn(
+                GoogleTokenResponse()
+                    .setAccessToken("access_token")
+                    .setExpiresInSeconds(3600L)
+            )
+        }.use {
+            mockConstruction(
+                Calendar.Builder::class.java
+            ) { mockBuilder, _ ->
+                val mockCalendar = mock(Calendar::class.java)
+                `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
+                `when`(mockBuilder.build()).thenReturn(mockCalendar)
+                `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to delete event"))
+            }.use {
+                val result = googleCalendarApiFacade.deleteCalendarEvent(
+                    user,
+                    CalendarEventFixtures.externalTypeCalendarEvent
+                )
+
+                when (result) {
+                    is Either.Left -> {
+                        assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.GoogleCalendarApiDeleteEventError::class.java)
+                        val error = result.value as GoogleCalendarApiFacadeError.GoogleCalendarApiDeleteEventError
+                        assertThat(error.message).isEqualTo("google calendar api delete event error: failed to delete event")
+                    }
+
+                    is Either.Right -> fail("This should have returned left value")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `test deleteCalendarEvent - happy path`() {
+        val mockCalendarEvents = mock(Calendar.Events::class.java)
+        val mockCalendarEventsDelete = mock(Calendar.Events.Delete::class.java)
+        mockConstruction(
+            GoogleRefreshTokenRequest::class.java
+        ) { mock, _ ->
+            `when`(mock.execute()).thenReturn(
+                GoogleTokenResponse()
+                    .setAccessToken("access_token")
+                    .setExpiresInSeconds(3600L)
+            )
+        }.use {
+            mockConstruction(
+                Calendar.Builder::class.java
+            ) { mockBuilder, _ ->
+                val mockCalendar = mock(Calendar::class.java)
+                `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
+                `when`(mockBuilder.build()).thenReturn(mockCalendar)
+                `when`(mockCalendar.events()).thenReturn(mockCalendarEvents)
+                `when`(mockCalendarEvents.delete(any(), any())).thenReturn(mockCalendarEventsDelete)
+            }.use {
+                val result = googleCalendarApiFacade.deleteCalendarEvent(
+                    user,
+                    CalendarEventFixtures.externalTypeCalendarEvent
+                )
+
+                when (result) {
+                    is Either.Left -> fail("This should have returned right value")
+
+                    is Either.Right -> {
+                        verify(mockCalendarEvents).delete(
+                            eq("primary"),
+                            eq(CalendarEventFixtures.externalTypeCalendarEvent.id)
+                        )
                     }
                 }
             }

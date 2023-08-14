@@ -3,7 +3,6 @@ package djei.clockpanda.scheduling.googlecalendar
 import arrow.core.Either
 import arrow.core.getOrElse
 import arrow.core.left
-import arrow.core.right
 import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
@@ -30,16 +29,19 @@ class GoogleCalendarApiFacade(
     @Value("\${spring.security.oauth2.client.registration.google.client_secret}")
     private val googleClientSecret: String
 ) {
+    companion object {
+        val ACCESS_TOKEN_CACHE = mutableMapOf<String, AccessToken>()
+    }
+
     fun listCalendarEvents(
         user: User,
         range: TimeSpan
     ): Either<GoogleCalendarApiFacadeError, List<CalendarEvent>> {
         val accessToken = getAccessToken(user).getOrElse { return it.left() }
-        val primaryCalendarId = getPrimaryCalendar(user, accessToken).getOrElse { return it.left() }
         val calendarService = getCalendarService(accessToken)
 
         return Either.catch {
-            val listEventRequest = calendarService.events().list(primaryCalendarId)
+            val listEventRequest = calendarService.events().list("primary")
             listEventRequest.singleEvents = true
             listEventRequest.timeMin = DateTime(range.start.toEpochMilliseconds())
             listEventRequest.timeMax = DateTime(range.end.toEpochMilliseconds())
@@ -58,24 +60,33 @@ class GoogleCalendarApiFacade(
             .map { it.map(CalendarEvent::fromGoogleCalendarEvent) }
     }
 
-    private fun getPrimaryCalendar(user: User, accessToken: AccessToken): Either<GoogleCalendarApiFacadeError, String> {
-        val calendars = Either.catch {
-            val calendarService = getCalendarService(accessToken)
-            calendarService.calendarList()
-                .list()
+    fun deleteCalendarEvent(
+        user: User,
+        calendarEvent: CalendarEvent
+    ): Either<GoogleCalendarApiFacadeError, Unit> {
+        val accessToken = getAccessToken(user).getOrElse { return it.left() }
+        val calendarService = getCalendarService(accessToken)
+
+        return Either.catch {
+            calendarService.events()
+                .delete("primary", calendarEvent.id)
                 .execute()
-                .items
-        }.getOrElse {
-            return GoogleCalendarApiFacadeError.GoogleCalendarApiListCalendarListError(it).left()
-        }
+            Unit
+        }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiDeleteEventError(it) }
+    }
 
-        val primaryCalendar = calendars?.find { it.isPrimary && it.accessRole == "owner" }
-
-        return primaryCalendar?.id?.right()
-            ?: GoogleCalendarApiFacadeError.GoogleCalendarApiNoPrimaryCalendarFoundForUserError(user).left()
+    internal fun clearAccessTokenCache() {
+        ACCESS_TOKEN_CACHE.clear()
     }
 
     private fun getAccessToken(user: User): Either<GoogleCalendarApiFacadeError, AccessToken> {
+        val cachedAccessToken = ACCESS_TOKEN_CACHE[user.email]
+        if (cachedAccessToken != null &&
+            // Only returned cached access token if it's not expired in 5 minutes
+            cachedAccessToken.expirationTime.time > Clock.System.now().toJavaInstant().toEpochMilli() + 1000 * 60 * 5
+        ) {
+            return Either.Right(cachedAccessToken)
+        }
         return Either.catch {
             GoogleRefreshTokenRequest(
                 GoogleNetHttpTransport.newTrustedTransport(),
@@ -86,10 +97,12 @@ class GoogleCalendarApiFacade(
             ).execute()
         }.mapLeft { GoogleCalendarApiFacadeError.GoogleAuthApiGetAccessTokenError(it) }
             .map {
-                AccessToken(
+                val accessToken = AccessToken(
                     it.accessToken,
                     Date.from(Clock.System.now().plus(it.expiresInSeconds, DateTimeUnit.SECOND).toJavaInstant())
                 )
+                ACCESS_TOKEN_CACHE[user.email] = accessToken
+                accessToken
             }
     }
 

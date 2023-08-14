@@ -1,7 +1,5 @@
 package djei.clockpanda.scheduling.googlecalendar
 
-import djei.clockpanda.model.User
-
 sealed class GoogleCalendarApiFacadeError(
     message: String,
     override val cause: Throwable? = null
@@ -13,18 +11,14 @@ sealed class GoogleCalendarApiFacadeError(
         cause
     )
 
-    data class GoogleCalendarApiListCalendarListError(
+    data class GoogleCalendarApiDeleteEventError(
         override val cause: Throwable
     ) : GoogleCalendarApiFacadeError(
-        "google calendar api list calendar list error: ${cause.message ?: "unknown error"}",
+        "google calendar api delete event error: ${cause.message ?: "unknown error"}",
         cause
     )
 
     data class GoogleCalendarApiListEventsError(
         override val cause: Throwable
     ) : GoogleCalendarApiFacadeError("google calendar api list events error: ${cause.message ?: "unknown error"}")
-
-    data class GoogleCalendarApiNoPrimaryCalendarFoundForUserError(
-        val user: User
-    ) : GoogleCalendarApiFacadeError("no primary calendar found for user: ${user.email}")
 }
