@@ -132,7 +132,7 @@ class OptimizationConstraintsProviderTest {
             users = listOf(UserFixtures.userWithPreferences)
         )
 
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsOutsideOfWorkingHours)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsShouldNotBeOutsideOfWorkingHours)
             .givenSolution(solution)
             .penalizesBy(1000)
     }
@@ -167,7 +167,7 @@ class OptimizationConstraintsProviderTest {
             users = listOf(UserFixtures.userWithNoPreferences)
         )
 
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsOutsideOfWorkingHours)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsShouldNotBeOutsideOfWorkingHours)
             .givenSolution(solution)
             .penalizesBy(0)
     }

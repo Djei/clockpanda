@@ -29,6 +29,7 @@ This project is split into multiple gradle subprojects:
 Commit messages must be prefixed with one of the following tags:
 - [feature]: for commits implementing new features
 - [fix]: for commits fixing bugs
+- [opex]: for commits improving operational excellence e.g. security, logging, performance, monitoring
 - [codeclean]: for commits cleaning up code e.g. linting, variable renames
 - [doc]: for commits updating documentation
 ## Testing before pushing

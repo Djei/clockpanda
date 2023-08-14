@@ -18,7 +18,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
-            focusTimeEventsOutsideOfWorkingHours(constraintFactory),
+            focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
             focusTimeTotalAmountNotMeetingTheTarget(constraintFactory)
         )
     }
@@ -26,6 +26,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     fun focusTimeEventsShouldNotOverlapWithOtherEvents(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 Event::class.java,
                 Joiners.overlapping(Event::getStartTime, Event::getEndTime),
@@ -37,35 +38,33 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .asConstraint("Focus time events should not overlap with other events")
     }
 
-    fun focusTimeEventsOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
+    fun focusTimeEventsShouldNotBeOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
                 Joiners.equal(Event::owner, User::email)
             )
-            .penalize(HardSoftScore.ONE_HARD) { event, user ->
+            .filter { event, user ->
                 val userPreferences = user.preferences
                 if (userPreferences == null) {
-                    0
+                    false
                 } else {
                     val userPreferredTimeZone = userPreferences.preferredTimeZone
                     val eventLocalStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
                     val eventLocalEndTime = event.getEndTime().toLocalDateTime(userPreferredTimeZone)
                     // We only support specifying one working hour block per day for now
                     val workingHoursForEvent = userPreferences.workingHours[eventLocalStartTime.dayOfWeek]?.get(0)
-                    if (workingHoursForEvent == null) {
-                        0
+                    if (eventLocalStartTime.date != eventLocalEndTime.date) {
+                        true
+                    } else if (workingHoursForEvent == null) {
+                        false
                     } else {
-                        // Penalize by 1000 points for each event that is outside working hours
-                        if (eventLocalStartTime.time < workingHoursForEvent.start || eventLocalEndTime.time > workingHoursForEvent.end) {
-                            1000
-                        } else {
-                            0
-                        }
+                        eventLocalStartTime.time < workingHoursForEvent.start || eventLocalEndTime.time > workingHoursForEvent.end
                     }
                 }
-            }
+            }.penalize(HardSoftScore.ONE_HARD) { _, _ -> 1000 }
             .asConstraint("Focus time events should not be outside working hours")
     }
 

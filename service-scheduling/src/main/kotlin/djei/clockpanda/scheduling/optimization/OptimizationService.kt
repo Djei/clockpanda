@@ -1,12 +1,9 @@
 package djei.clockpanda.scheduling.optimization
 
+import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore
 import ai.timefold.solver.core.api.score.stream.ConstraintStreamImplType
+import ai.timefold.solver.core.api.solver.SolutionManager
 import ai.timefold.solver.core.api.solver.SolverFactory
-import ai.timefold.solver.core.config.constructionheuristic.ConstructionHeuristicPhaseConfig
-import ai.timefold.solver.core.config.constructionheuristic.ConstructionHeuristicType
-import ai.timefold.solver.core.config.localsearch.LocalSearchPhaseConfig
-import ai.timefold.solver.core.config.localsearch.decider.acceptor.LocalSearchAcceptorConfig
-import ai.timefold.solver.core.config.localsearch.decider.forager.LocalSearchForagerConfig
 import ai.timefold.solver.core.config.score.director.ScoreDirectorFactoryConfig
 import ai.timefold.solver.core.config.solver.SolverConfig
 import ai.timefold.solver.core.config.solver.termination.TerminationConfig
@@ -52,9 +49,11 @@ class OptimizationService(
             val problem = generateOptimizationProblem(user)
                 .getOrElse { return it.left() }
             Either.catch {
-                val solver = getOptimizationProblemSolverFactory().buildSolver()
+                val solverFactory = getOptimizationProblemSolverFactory()
+                val solver = solverFactory.buildSolver()
+                val solutionManager = SolutionManager.create<OptimizationProblem, HardSoftScore>(solverFactory)
                 val solution = solver.solve(problem)
-                logger.info("Scheduled optimized for user ${user.email}")
+                logger.info("Scheduled optimized for user ${user.email}: ${solutionManager.explain(solution).summary}")
                 OptimizedScheduleResult.fromSolvedOptimizationProblem(solution)
             }.getOrElse { return OptimizationServiceError.SolverError(it).left() }
         }.right()
@@ -115,14 +114,7 @@ class OptimizationService(
                 ScoreDirectorFactoryConfig()
                     .withConstraintProviderClass(OptimizationConstraintsProvider::class.java)
                     .withConstraintStreamImplType(ConstraintStreamImplType.BAVET)
-                    .withInitializingScoreTrend("ANY")
-            )
-            .withPhases(
-                ConstructionHeuristicPhaseConfig()
-                    .withConstructionHeuristicType(ConstructionHeuristicType.FIRST_FIT),
-                LocalSearchPhaseConfig()
-                    .withAcceptorConfig(LocalSearchAcceptorConfig().withLateAcceptanceSize(400))
-                    .withForagerConfig(LocalSearchForagerConfig().withAcceptedCountLimit(1))
+                    .withInitializingScoreTrend("ONLY_DOWN")
             )
             .withTerminationConfig(TerminationConfig().withSecondsSpentLimit(solverSecondsSpentTerminationConfig))
         return SolverFactory.create(solverConfig)
@@ -150,6 +142,7 @@ class OptimizationService(
                 it.getDurationInMinutes() != 0
             }
             .forEach { it ->
+                logger.info("Creating focus time event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
                 googleCalendarApiFacade.createCalendarEvent(
                     user = user,
                     title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,

@@ -71,4 +71,8 @@ class Event(
             else -> throw IllegalStateException("Duration in time grains range not defined for event type $type")
         }
     }
+
+    override fun toString(): String {
+        return "Event(id=$id, startTime=${getStartTime()}, endTime=${getEndTime()}, type=$type, owner=$owner)"
+    }
 }
