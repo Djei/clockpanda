@@ -239,4 +239,76 @@ class OptimizationConstraintsProviderTest {
             .givenSolution(solution)
             .penalizesBy(132)
     }
+
+    @Test
+    fun `penalize if focus time does not start at the same time`() {
+        val focusTimeStartingAt7BeforeDaylightSaving = Event(
+            id = "1",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-24T07:00:00Z")
+            ),
+            durationInTimeGrains = 12,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val focusTimeStartingAt7AfterDaylightSaving = Event(
+            id = "2",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-28T06:00:00Z")
+            ),
+            durationInTimeGrains = 16,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val focusTimeNotStartingAt7 = Event(
+            id = "3",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-28T06:15:00Z")
+            ),
+            durationInTimeGrains = 16,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val externalEvent1 = Event(
+            id = "4",
+            type = CalendarEventType.EXTERNAL_EVENT,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-03T00:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = UserFixtures.userWithPreferences.email
+        )
+
+        val solutionWithNoPenalty = OptimizationProblem(
+            optimizationRange = TimeSpan(
+                start = Instant.parse("2021-01-01T00:00:00Z"),
+                end = Instant.parse("2021-01-15T00:00:00Z")
+            ),
+            schedule = listOf(
+                focusTimeStartingAt7BeforeDaylightSaving,
+                focusTimeStartingAt7AfterDaylightSaving,
+                externalEvent1
+            ),
+            users = listOf(UserFixtures.userWithPreferences)
+        )
+        val solutionWithPenalty = OptimizationProblem(
+            optimizationRange = TimeSpan(
+                start = Instant.parse("2021-01-01T00:00:00Z"),
+                end = Instant.parse("2021-01-15T00:00:00Z")
+            ),
+            schedule = listOf(
+                focusTimeStartingAt7BeforeDaylightSaving,
+                focusTimeNotStartingAt7,
+                externalEvent1
+            ),
+            users = listOf(UserFixtures.userWithPreferences)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldStartAtTheSameTimeEveryDay)
+            .givenSolution(solutionWithNoPenalty)
+            .penalizesBy(0)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldStartAtTheSameTimeEveryDay)
+            .givenSolution(solutionWithPenalty)
+            .penalizesBy(56)
+    }
 }

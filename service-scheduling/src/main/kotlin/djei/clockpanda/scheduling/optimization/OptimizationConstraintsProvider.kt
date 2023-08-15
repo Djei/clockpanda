@@ -1,6 +1,6 @@
 package djei.clockpanda.scheduling.optimization
 
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore
+import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import ai.timefold.solver.core.api.score.stream.Constraint
 import ai.timefold.solver.core.api.score.stream.ConstraintCollectors
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory
@@ -12,20 +12,23 @@ import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.atDate
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
 import kotlin.time.DurationUnit
 
 class OptimizationConstraintsProvider : ConstraintProvider {
     // Constraint priority design
-    // 1. Hard constraint: Focus time events should NOT overlap with other events
-    // 2. Hard constraint: Focus time should NOT be outside user working hours
+    // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
+    // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
     // 3. Hard constraint: Focus time should start and end on the same day
-    // 4. Soft constraint: Focus time total amount should reach the desired target
+    // 4. Medium constraint: Focus time total amount should reach the desired target
+    // 5. Soft constraint: Focus time events should start around the same time every day
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
             focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
             focusTimeShouldStartAndEndOnTheSameDay(constraintFactory),
-            focusTimeTotalAmountNotMeetingTheTarget(constraintFactory)
+            focusTimeTotalAmountNotMeetingTheTarget(constraintFactory),
+            focusTimeShouldStartAtTheSameTimeEveryDay(constraintFactory)
         )
     }
 
@@ -43,7 +46,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 }
             )
             // Penalize proportionally to the amount of overlap
-            .penalize(HardSoftScore.ONE_HARD) { event1, event2 ->
+            .penalize(HardMediumSoftScore.ONE_HARD) { event1, event2 ->
                 event1.computeOverlapInMinutes(event2)
             }
             .asConstraint("Focus time events should not overlap with other events")
@@ -87,7 +90,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                     }
                     amountOutsideWorkingHours
                 }
-            }.penalize(HardSoftScore.ONE_HARD) { amountOutsideWorkingHours -> amountOutsideWorkingHours }
+            }.penalize(HardMediumSoftScore.ONE_HARD) { amountOutsideWorkingHours -> amountOutsideWorkingHours }
             .asConstraint("Focus time events should not be outside working hours")
     }
 
@@ -104,7 +107,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 event.getStartTime().toLocalDateTime(userPreferredTimeZone).date !=
                     event.getEndTime().toLocalDateTime(userPreferredTimeZone).date
             }
-            .penalize(HardSoftScore.ONE_HARD) { _, _ -> 1 }
+            .penalize(HardMediumSoftScore.ONE_HARD) { _, _ -> 1 }
             .asConstraint("Focus time should start and end on the same day")
     }
 
@@ -116,12 +119,39 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 User::class.java,
                 Joiners.equal({ owner, _ -> owner }, User::email)
             )
-            .penalize(HardSoftScore.ONE_SOFT) { _, amountOfFocusTimeReserved, user ->
+            .penalize(HardMediumSoftScore.ONE_MEDIUM) { _, amountOfFocusTimeReserved, user ->
                 val userPreferences = user.preferences
                 val targetFocusTimeHoursPerWeek = userPreferences?.targetFocusTimeHoursPerWeek ?: 0
-                val missing = maxOf(targetFocusTimeHoursPerWeek * 60 * 2 - amountOfFocusTimeReserved, 0)
+                val missing = abs(targetFocusTimeHoursPerWeek * 60 * 2 - amountOfFocusTimeReserved)
                 missing / 15
             }
             .asConstraint("Focus time total amount not meeting the target")
+    }
+
+    fun focusTimeShouldStartAtTheSameTimeEveryDay(factory: ConstraintFactory): Constraint {
+        return factory.forEach(Event::class.java)
+            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .join(
+                User::class.java,
+                Joiners.equal(Event::owner, User::email)
+            )
+            .groupBy({ _, _ -> 1 }, ConstraintCollectors.toList { event, user -> event to user })
+            .penalize(HardMediumSoftScore.ONE_SOFT) { _, pairs ->
+                // Calculate standard deviation of event start
+                val average = pairs.map { (event, user) ->
+                    val userPreferredTimeZone = user.preferences!!.preferredTimeZone
+                    val localEventStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
+                    localEventStartTime.hour * 60 + localEventStartTime.minute
+                }.average()
+                val variance = pairs.map { (event, user) ->
+                    val userPreferredTimeZone = user.preferences!!.preferredTimeZone
+                    val localEventStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
+                    val localEventStartTimeInMinutes = localEventStartTime.hour * 60 + localEventStartTime.minute
+                    (localEventStartTimeInMinutes - average) * (localEventStartTimeInMinutes - average)
+                }.average()
+                variance.toInt()
+            }
+            .asConstraint("Focus time should start at the same time every day")
     }
 }

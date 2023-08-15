@@ -12,7 +12,7 @@ class OptimizationCronJob(
     private val logger: Logger
 ) {
 
-    @Scheduled(fixedDelay = 15, timeUnit = TimeUnit.MINUTES)
+    @Scheduled(fixedDelay = 30, timeUnit = TimeUnit.MINUTES)
     fun optimizeSchedule() {
         logger.info("Running optimization cron job")
         when (val optimizationResult = optimizationService.calculateOptimizedSchedule()) {

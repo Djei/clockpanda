@@ -5,6 +5,7 @@ import ai.timefold.solver.core.api.domain.solution.PlanningScore
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
+import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.TimeSpan
@@ -22,7 +23,7 @@ class OptimizationProblem(
     @ProblemFactCollectionProperty
     val users: List<User>
 ) {
-    private var score: HardSoftScore = HardSoftScore.ZERO
+    private var score: HardMediumSoftScore = HardMediumSoftScore.ZERO
 
     init {
         require(optimizationRange.start < optimizationRange.end) {
@@ -43,11 +44,11 @@ class OptimizationProblem(
     }
 
     @PlanningScore
-    fun getPlanningScore(): HardSoftScore {
+    fun getPlanningScore(): HardMediumSoftScore {
         return score
     }
 
-    fun setPlanningScore(score: HardSoftScore) {
+    fun setPlanningScore(score: HardMediumSoftScore) {
         this.score = score
     }
 

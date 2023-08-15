@@ -38,6 +38,19 @@ You can build and run the full test suite using `make build`
 
 You can build and run a particular subproject using `./gradlew :<replace with subproject name>:check` e.g. `./gradlew :service-authnz:check`
 ### Local manual test
+You will first need to setup your own Google Calendar API credentials and add them to your local environment:
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create a project if needed
+3. Setup an OAuth consent screen and add your email as a test user
+4. Ask for the following 2 scopes 
+ - auth/calendar.readonly
+ - auth/calendar.events.owned
+5. In the Credentials tab, create an OAuth client ID
+6. Copy the client id and client secret in an `.env` file in `app/src/main/resources` (Use `.env.example` as a template)
+
 You can start a local Clock Panda instance using `make bootRun` and open `http://localhost:8001/` in your browser
 
 If you need to connect a debugger to the Clock Panda instance, you can start it using `make bootRunDebug` and connect to the debug port
+
+Clock Panda is configured to run the schedule optimizer only every 30 minutes which is not ideal for testing the optimizer. 
+You can use the `OptimizationCronJobPlayground` test class to more rapidly iterate and get feedback. 
