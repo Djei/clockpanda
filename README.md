@@ -81,9 +81,11 @@ You can use the `OptimizationCronJobPlayground` test class to more rapidly itera
 When running locally or in a self-hosted environment, you will first need to setup your own Google Calendar API credentials and add them to your local environment:
 1. Go to https://console.cloud.google.com/apis/credentials
 2. Create a project if needed
+3. Enable the Google Calendar API for your project
 3. Setup an OAuth consent screen and add your email as a test user
 4. Ask for the following 2 scopes
 - auth/calendar.readonly
 - auth/calendar.events.owned
 5. In the Credentials tab, create an OAuth client ID
-6. Copy the client id and client secret in an `.env` file in `app/src/main/resources` (Use `.env.example` as a template)
+6. Add `http://localhost:8001/login/oauth2/code/google` as an authorized redirect URI
+7. Copy the client id and client secret in an `.env` file in `app/src/main/resources` (Use `.env.example` as a template)
