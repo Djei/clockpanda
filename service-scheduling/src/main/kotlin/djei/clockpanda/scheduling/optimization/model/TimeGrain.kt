@@ -1,4 +1,4 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.model
 
 import kotlinx.datetime.Instant
 

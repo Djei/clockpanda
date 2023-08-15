@@ -17,6 +17,10 @@ import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
+import djei.clockpanda.scheduling.optimization.constraint.OptimizationConstraintsProvider
+import djei.clockpanda.scheduling.optimization.model.Event
+import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone

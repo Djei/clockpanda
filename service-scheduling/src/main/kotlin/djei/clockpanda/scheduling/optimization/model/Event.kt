@@ -1,4 +1,4 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.model
 
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity
 import ai.timefold.solver.core.api.domain.entity.PlanningPin

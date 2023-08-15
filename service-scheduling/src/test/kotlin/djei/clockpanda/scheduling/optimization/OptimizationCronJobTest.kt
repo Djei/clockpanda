@@ -18,6 +18,7 @@ import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_DAYS
 import djei.clockpanda.scheduling.optimization.fixtures.EventFixtures
+import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import kotlinx.datetime.Instant
 import org.jooq.DSLContext
 import org.junit.jupiter.api.Test

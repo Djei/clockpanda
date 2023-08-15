@@ -21,7 +21,7 @@ sealed class OptimizationServiceError(
     )
 
     data class EventError(
-        val eventError: djei.clockpanda.scheduling.optimization.EventError
+        val eventError: djei.clockpanda.scheduling.optimization.model.EventError
     ) : OptimizationServiceError(
         "event error: ${eventError.message}",
         eventError

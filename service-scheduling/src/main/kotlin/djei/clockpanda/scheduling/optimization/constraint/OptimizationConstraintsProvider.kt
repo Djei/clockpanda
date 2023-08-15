@@ -1,4 +1,4 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.constraint
 
 import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import ai.timefold.solver.core.api.score.stream.Constraint
@@ -10,6 +10,8 @@ import arrow.core.getOrElse
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
+import djei.clockpanda.scheduling.optimization.model.Event
+import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate

@@ -1,4 +1,4 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.model
 
 sealed class EventError(override val message: String, override val cause: Throwable?) : Error(message, cause) {
     data class FromCalendarEventError(

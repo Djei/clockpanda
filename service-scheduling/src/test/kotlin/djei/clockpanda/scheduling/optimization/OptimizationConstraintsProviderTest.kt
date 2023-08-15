@@ -6,6 +6,10 @@ import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
+import djei.clockpanda.scheduling.optimization.constraint.OptimizationConstraintsProvider
+import djei.clockpanda.scheduling.optimization.model.Event
+import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone

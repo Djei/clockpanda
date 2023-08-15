@@ -20,5 +20,5 @@ dependencies {
 }
 
 noArg {
-    annotation("djei.clockpanda.scheduling.optimization.NoArg")
+    annotation("djei.clockpanda.scheduling.optimization.model.NoArg")
 }
