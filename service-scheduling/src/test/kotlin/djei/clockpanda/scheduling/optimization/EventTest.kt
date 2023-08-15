@@ -19,6 +19,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T12:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
 
@@ -30,6 +31,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T08:00:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(notOverlappingBefore)).isEqualTo(0)
@@ -42,6 +44,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T11:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(partiallyOverlappingBefore)).isEqualTo(60)
@@ -54,6 +57,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T13:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(partiallyOverlappingAfter)).isEqualTo(60)
@@ -66,6 +70,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T15:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(notOverlappingAfter)).isEqualTo(0)
@@ -78,6 +83,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T11:00:00Z")
             ),
             durationInTimeGrains = 16,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(fullyContainsReference)).isEqualTo(120)
@@ -90,6 +96,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T12:30:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(fullyContainedByReference)).isEqualTo(60)
@@ -105,6 +112,7 @@ class EventTest {
                 start = Instant.parse("2021-01-01T12:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
 

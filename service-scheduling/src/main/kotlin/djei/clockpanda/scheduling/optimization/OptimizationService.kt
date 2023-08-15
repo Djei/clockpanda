@@ -1,6 +1,6 @@
 package djei.clockpanda.scheduling.optimization
 
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore
+import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import ai.timefold.solver.core.api.score.stream.ConstraintStreamImplType
 import ai.timefold.solver.core.api.solver.SolutionManager
 import ai.timefold.solver.core.api.solver.SolverFactory
@@ -51,7 +51,7 @@ class OptimizationService(
             Either.catch {
                 val solverFactory = getOptimizationProblemSolverFactory()
                 val solver = solverFactory.buildSolver()
-                val solutionManager = SolutionManager.create<OptimizationProblem, HardSoftScore>(solverFactory)
+                val solutionManager = SolutionManager.create<OptimizationProblem, HardMediumSoftScore>(solverFactory)
                 val solution = solver.solve(problem)
                 logger.info("Scheduled optimized for user ${user.email}: ${solutionManager.explain(solution).summary}")
                 OptimizedScheduleResult.fromSolvedOptimizationProblem(solution)
@@ -78,22 +78,22 @@ class OptimizationService(
         ).getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
 
         val existingSchedule = userCalendarEvents
-            // We ignore existing focus time from existing schedule since optimization will add them back
-            .filter { it.getType() != CalendarEventType.FOCUS_TIME }
             .map { calendarEvent ->
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
                     .getOrElse { error ->
                         return OptimizationServiceError.EventError(error).left()
                     }
             }
-        // We artificially add 1 focus time event planning entities to be optimized by the solver per day in the optimization range
-        // This is a bit of a hack as we need to investigate if it is possible to add planning entities dynamically
-        val focusTimesToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS).map { index ->
+        val existingFocusTimes = existingSchedule.filter { it.type == CalendarEventType.FOCUS_TIME }
+        // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
+        // It will simply reduce some to 0 duration if it can't fit them all
+        val focusTimesToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS - existingFocusTimes.size).map { index ->
             Event(
                 id = "focus-time-$index",
                 type = CalendarEventType.FOCUS_TIME,
                 startTimeGrain = TimeGrain(optimizationRangeStart),
-                durationInTimeGrains = 1,
+                durationInTimeGrains = 0,
+                originalCalendarEvent = null,
                 owner = user.email
             )
         }
@@ -126,35 +126,71 @@ class OptimizationService(
         optimizedScheduleResult: OptimizedScheduleResult
     ): Either<OptimizationServiceError, Unit> {
         val user = optimizedScheduleResult.user
-        val optimizationRange = optimizedScheduleResult.optimizationRange
-        val existingFocusTimes = googleCalendarApiFacade.listCalendarEvents(user, optimizationRange)
-            .getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
-            .filter { it.getType() == CalendarEventType.FOCUS_TIME }
-        val newFocusTimes = optimizedScheduleResult.focusTimes
-        // Delete existing focus times
-        existingFocusTimes.forEach { it ->
-            googleCalendarApiFacade.deleteCalendarEvent(user, it)
-                .getOrElse {
-                    return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
-                }
+        val optimizedFocusTimes = optimizedScheduleResult.focusTimes
+        val newFocusTimes = optimizedFocusTimes.filter { it.originalCalendarEvent == null }
+        val existingFocusTimes = optimizedFocusTimes.filter { it.originalCalendarEvent != null }
+
+        handleExistingFocusTimes(user, existingFocusTimes)
+            .getOrElse { return it.left() }
+        handleNewFocusTimes(newFocusTimes, user)
+            .getOrElse { return it.left() }
+
+        return Unit.right()
+    }
+
+    private fun handleNewFocusTimes(
+        newFocusTimes: List<Event>,
+        user: User
+    ): Either<OptimizationServiceError, Unit> {
+        newFocusTimes.filter {
+            it.getDurationInMinutes() != 0
+        }.forEach { it ->
+            logger.info("Creating focus time event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
+            googleCalendarApiFacade.createCalendarEvent(
+                user = user,
+                title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                description = null,
+                startTime = it.getStartTime(),
+                endTime = it.getEndTime()
+            ).getOrElse {
+                return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+            }
         }
-        // Create the new focus times
-        newFocusTimes
-            .filter {
-                it.getDurationInMinutes() != 0
-            }
-            .forEach { it ->
-                logger.info("Creating focus time event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
-                googleCalendarApiFacade.createCalendarEvent(
-                    user = user,
-                    title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
-                    description = null,
-                    startTime = it.getStartTime(),
-                    endTime = it.getEndTime()
-                ).getOrElse {
-                    return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+        return Unit.right()
+    }
+
+    private fun handleExistingFocusTimes(
+        user: User,
+        existingFocusTimes: List<Event>
+    ): Either<OptimizationServiceError, Unit> {
+        existingFocusTimes.forEach { it ->
+            // If duration is now 0, delete the event
+            if (it.getDurationInMinutes() == 0) {
+                logger.info("Deleting focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
+                googleCalendarApiFacade.deleteCalendarEvent(user, it.originalCalendarEvent)
+                    .getOrElse {
+                        return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                    }
+            } else {
+                val preferredTimeZone = user.preferences?.preferredTimeZone
+                    ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
+                val hasChangedFromOriginal = it.hasChangedFromOriginal(preferredTimeZone)
+                    .getOrElse { return OptimizationServiceError.EventError(it).left() }
+                if (hasChangedFromOriginal) {
+                    logger.info("Updating focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
+                    val updatedCalendarEvent = it.originalCalendarEvent.copy(
+                        startTime = it.getStartTime(),
+                        endTime = it.getEndTime()
+                    )
+                    googleCalendarApiFacade.updateCalendarEvent(user, updatedCalendarEvent)
+                        .getOrElse {
+                            return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                        }
+                } else {
+                    logger.info("No change detected for focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
                 }
             }
+        }
         return Unit.right()
     }
 

@@ -18,7 +18,7 @@ import kotlinx.datetime.toLocalDateTime
 @PlanningSolution
 class OptimizationProblem(
     @ProblemFactProperty
-    val parametrization: OptimizationProblem.OptimizationProblemParametrization,
+    val parametrization: OptimizationProblemParametrization,
     @PlanningEntityCollectionProperty
     val schedule: List<Event>,
     @ProblemFactCollectionProperty

@@ -28,6 +28,7 @@ class Event(
     @PlanningVariable(valueRangeProviderRefs = ["durationInTimeGrainsRange"])
     var durationInTimeGrains: Int?,
     val type: CalendarEventType,
+    val originalCalendarEvent: CalendarEvent?,
     val owner: String
 ) {
     companion object {
@@ -41,6 +42,7 @@ class Event(
                 startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
                 durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
                 type = calendarEvent.getType(),
+                originalCalendarEvent = calendarEvent,
                 owner = calendarEvent.owner
             ).right()
         }
@@ -60,6 +62,16 @@ class Event(
             (durationInTimeGrains ?: 0) * TimeGrain.TIME_GRAIN_RESOLUTION,
             DateTimeUnit.MINUTE
         )
+    }
+
+    fun hasChangedFromOriginal(timeZone: TimeZone): Either<EventError, Boolean> {
+        if (originalCalendarEvent == null) {
+            return false.right()
+        } else {
+            val calendarEventTimeSpan = originalCalendarEvent.getTimeSpan(timeZone)
+                .getOrElse { return EventError.FromCalendarEventError(it).left() }
+            return (calendarEventTimeSpan.start != getStartTime() || calendarEventTimeSpan.end != getEndTime()).right()
+        }
     }
 
     fun computeOverlapInMinutes(other: Event): Int {

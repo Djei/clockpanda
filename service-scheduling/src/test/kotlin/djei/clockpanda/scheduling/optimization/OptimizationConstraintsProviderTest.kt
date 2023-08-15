@@ -5,6 +5,7 @@ import djei.clockpanda.model.LocalTimeSpan
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
+import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -26,6 +27,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T02:00:00Z
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         val focusTime2 = Event(
@@ -35,6 +37,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T01:45:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T03:45:00Z
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         // External event 1 partially overlaps with focus time
@@ -45,6 +48,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T03:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T05:00:00Z
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = UserFixtures.userWithPreferences.email
         )
         // External event 2 does not overlap with focus time but with external event 1 (which should not be penalized)
@@ -55,6 +59,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T04:45:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T06:45:00Z
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = UserFixtures.userWithPreferences.email
         )
         // External event 3 is completely contained within focus time
@@ -65,6 +70,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T02:00:00Z")
             ),
             durationInTimeGrains = 4, // End time: 2021-01-01T03:00:00Z
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = UserFixtures.userWithPreferences.email
         )
         // External event 4 completely contains focus time
@@ -75,6 +81,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T01:30:00Z")
             ),
             durationInTimeGrains = 24, // End time: 2021-01-01T07:30:00Z
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = UserFixtures.userWithPreferences.email
         )
 
@@ -116,6 +123,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T08:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
         val focusTimeInsideWorkingHours = Event(
@@ -125,6 +133,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T14:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = null,
             owner = UserFixtures.userWithPreferences.email
         )
 
@@ -161,6 +170,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T23:00:00Z")
             ),
             durationInTimeGrains = 24,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val focusTimeNotPassingInUserTimeZone = Event(
@@ -170,6 +180,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-07-07T23:45:00Z")
             ),
             durationInTimeGrains = 2,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val externalEventDoesNotCount = Event(
@@ -179,6 +190,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T23:00:00Z")
             ),
             durationInTimeGrains = 24,
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = user.email
         )
 
@@ -218,6 +230,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 12,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val fourHoursOfFocusTime = Event(
@@ -227,6 +240,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-02T00:00:00Z")
             ),
             durationInTimeGrains = 16,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val externalEvent1 = Event(
@@ -236,6 +250,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-03T00:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = user.email
         )
 
@@ -253,16 +268,61 @@ class OptimizationConstraintsProviderTest {
         // User preference wants 20 hours of focus time per week
         // - but only 7 hours are scheduled in the first week
         // - 0 hours are scheduled in the second week
-        // This constraint does not penalize the second week because timefold does not support left joins
-        // https://stackoverflow.com/questions/67274703/optaplanner-constraint-streams-other-join-types-than-inner-join
-        // This completely removes empty buckets
-        // This forces us to implement a separate  `focusTimeTotalAmountIsZeroInAWeekForGivenUser` constraint for empty buckets
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget)
             .givenSolution(solution)
             .penalizesBy(13 * 60)
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountIsZeroInAWeekForGivenUser)
             .givenSolution(solution)
             .penalizesBy(20 * 60)
+    }
+
+    @Test
+    fun `penalize if existing focus time is moved`() {
+        val existingFocusTimeThatHasNotMoved = Event(
+            id = "1",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-01T00:00:00Z")
+            ),
+            durationInTimeGrains = 12,
+            originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent1,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val existingFocusTimeThatHasMoved = Event(
+            id = "2",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-12T00:00:00Z")
+            ),
+            durationInTimeGrains = 4,
+            originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent2,
+            owner = UserFixtures.userWithPreferences.email
+        )
+        val externalEvent1 = Event(
+            id = "3",
+            type = CalendarEventType.EXTERNAL_EVENT,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-01-03T00:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
+            owner = UserFixtures.userWithPreferences.email
+        )
+
+        val solution = OptimizationProblem(
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
+            ),
+            schedule = listOf(existingFocusTimeThatHasNotMoved, existingFocusTimeThatHasMoved, externalEvent1),
+            users = listOf(UserFixtures.userWithPreferences)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime)
+            .givenSolution(solution)
+            .penalizesBy(30)
     }
 
     @Test
@@ -282,6 +342,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-24T07:00:00Z")
             ),
             durationInTimeGrains = 12,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val focusTimeWithinPreferredRange = Event(
@@ -291,6 +352,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-25T16:00:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val externalEvent1OutsidePreferredRange = Event(
@@ -300,6 +362,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-26T07:00:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = user.email
         )
 
@@ -338,6 +401,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-24T07:00:00Z")
             ),
             durationInTimeGrains = 12,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val onTheHalfHour = Event(
@@ -347,6 +411,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-25T16:00:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val at15Minutes = Event(
@@ -356,6 +421,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-26T16:15:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val at45Minutes = Event(
@@ -365,6 +431,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-27T16:45:00Z")
             ),
             durationInTimeGrains = 4,
+            originalCalendarEvent = null,
             owner = user.email
         )
         val externalEvent = Event(
@@ -374,6 +441,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-03-26T07:15:00Z")
             ),
             durationInTimeGrains = 8,
+            originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = user.email
         )
 

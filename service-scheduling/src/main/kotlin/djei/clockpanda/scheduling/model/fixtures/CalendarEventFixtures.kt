@@ -48,5 +48,19 @@ class CalendarEventFixtures {
             isRecurring = false,
             owner = "djei1@email.com"
         )
+
+        val focusTimeCalendarEvent3 = CalendarEvent(
+            id = "id_3",
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+            description = "description",
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            startTime = Instant.parse("2021-01-01T00:00:00Z"),
+            endTime = Instant.parse("2021-01-01T03:00:00Z"),
+            startDate = null,
+            endDate = null,
+            iCalUid = "unique_ical_uid_3",
+            isRecurring = false,
+            owner = "djei1@email.com"
+        )
     }
 }

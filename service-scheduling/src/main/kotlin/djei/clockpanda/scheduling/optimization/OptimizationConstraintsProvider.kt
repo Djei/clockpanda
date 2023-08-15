@@ -6,10 +6,12 @@ import ai.timefold.solver.core.api.score.stream.ConstraintCollectors
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider
 import ai.timefold.solver.core.api.score.stream.Joiners
+import arrow.core.getOrElse
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
@@ -17,21 +19,25 @@ import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
 
 class OptimizationConstraintsProvider : ConstraintProvider {
-    // Constraint priority design
-    // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
-    // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
-    // 3. Hard constraint: Focus time should start and end on the same day - fixed penalty per event
-    // 4. Medium constraint: Focus time total amount should reach the desired target - penalty proportional to amount missing
-    // 5. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
-    // 6. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
+            // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
+            // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
             focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
+            // 3. Hard constraint: Focus time should start and end on the same day - fixed penalty per event
             focusTimeShouldStartAndEndOnTheSameDay(constraintFactory),
+            // 4. Medium constraint: Focus time total amount should reach the desired target - penalty proportional to amount missing
+            // Implemented as 2 constraints because empty weekly buckets are completely removed by first constraint
+            // See https://stackoverflow.com/questions/67274703/optaplanner-constraint-streams-other-join-types-than-inner-join
+            // This forces us to implement a separate `focusTimeTotalAmountIsZeroInAWeekForGivenUser` constraint for empty buckets
             focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(constraintFactory),
             focusTimeTotalAmountIsZeroInAWeekForGivenUser(constraintFactory),
+            // 5. Medium constraint: An existing focus time total amount should only be moved if it gives an extra 30 minutes of focus time - fixed penalty of 30 per event moved
+            existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime(constraintFactory),
+            // 6. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
             focusTimeShouldBeWithinPreferredFocusTimeRange(constraintFactory),
+            // 7. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
             focusTimesShouldBeScheduledOnTheHourOrHalfHour(constraintFactory)
         )
     }
@@ -157,6 +163,19 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 missingInMinutes
             }
             .asConstraint("Focus time total amount is zero in a week for a given user")
+    }
+
+    fun existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime(factory: ConstraintFactory): Constraint {
+        return factory.forEach(Event::class.java)
+            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .filter { e -> e.originalCalendarEvent != null }
+            .filter { e ->
+                e.hasChangedFromOriginal(TimeZone.UTC)
+                    .getOrElse { throw IllegalStateException("We should not run solver with bad event data") }
+            }
+            .penalize(HardMediumSoftScore.ONE_MEDIUM) { 30 }
+            .asConstraint("Existing focus time events should only be moved if they give more focus time")
     }
 
     fun focusTimeShouldBeWithinPreferredFocusTimeRange(factory: ConstraintFactory): Constraint {
