@@ -5,10 +5,6 @@ import ai.timefold.solver.core.api.domain.entity.PlanningPin
 import ai.timefold.solver.core.api.domain.lookup.PlanningId
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable
-import arrow.core.Either
-import arrow.core.getOrElse
-import arrow.core.left
-import arrow.core.right
 import djei.clockpanda.scheduling.model.CalendarEvent
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
@@ -32,11 +28,9 @@ class Event(
     val owner: String
 ) {
     companion object {
-        fun fromCalendarEvent(calendarEvent: CalendarEvent, timeZone: TimeZone): Either<EventError, Event> {
+        fun fromCalendarEvent(calendarEvent: CalendarEvent, timeZone: TimeZone): Event {
             val calendarEventTimeSpan = calendarEvent.getTimeSpan(timeZone)
-                .getOrElse { return EventError.FromCalendarEventError(it).left() }
             val calendarEventDurationInMinutes = calendarEvent.getDurationInMinutes(timeZone)
-                .getOrElse { return EventError.FromCalendarEventError(it).left() }
             return Event(
                 id = calendarEvent.id,
                 startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
@@ -44,7 +38,7 @@ class Event(
                 type = calendarEvent.getType(),
                 originalCalendarEvent = calendarEvent,
                 owner = calendarEvent.owner
-            ).right()
+            )
         }
     }
 
@@ -64,13 +58,12 @@ class Event(
         )
     }
 
-    fun hasChangedFromOriginal(timeZone: TimeZone): Either<EventError, Boolean> {
-        if (originalCalendarEvent == null) {
-            return false.right()
+    fun hasChangedFromOriginal(timeZone: TimeZone): Boolean {
+        return if (originalCalendarEvent == null) {
+            false
         } else {
             val calendarEventTimeSpan = originalCalendarEvent.getTimeSpan(timeZone)
-                .getOrElse { return EventError.FromCalendarEventError(it).left() }
-            return (calendarEventTimeSpan.start != getStartTime() || calendarEventTimeSpan.end != getEndTime()).right()
+            calendarEventTimeSpan.start != getStartTime() || calendarEventTimeSpan.end != getEndTime()
         }
     }
 

@@ -86,7 +86,16 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         CalendarEventFixtures.externalTypeCalendarEvent
                     ).right()
                 )
-                given(googleCalendarApiFacade.updateCalendarEvent(any(), any())).willReturn {
+                given(
+                    googleCalendarApiFacade.updateCalendarEvent(
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()
+                    )
+                ).willReturn {
                     GoogleCalendarApiFacadeError.GoogleCalendarApiUpdateEventError(RuntimeException("some error"))
                         .left()
                 }
@@ -95,15 +104,19 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
 
                 verify(googleCalendarApiFacade).updateCalendarEvent(
                     eq(UserFixtures.userWithPreferences),
-                    argThat {
-                        id == EventFixtures.updatedExistingFocusTime.id
-                    }
+                    eq(EventFixtures.updatedExistingFocusTime.id),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.title),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.description),
+                    eq(EventFixtures.updatedExistingFocusTime.getStartTime()),
+                    eq(EventFixtures.updatedExistingFocusTime.getEndTime()),
                 )
                 verify(googleCalendarApiFacade, never()).updateCalendarEvent(
                     eq(UserFixtures.userWithPreferences),
-                    argThat {
-                        id == EventFixtures.noChangeExistingFocusTime.id
-                    }
+                    eq(EventFixtures.noChangeExistingFocusTime.id),
+                    any(),
+                    any(),
+                    any(),
+                    any()
                 )
                 verify(googleCalendarApiFacade, never()).createCalendarEvent(any(), any(), anyOrNull(), any(), any())
             }
@@ -228,7 +241,16 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 given(googleCalendarApiFacade.deleteCalendarEvent(any(), any())).willReturn {
                     Unit.right()
                 }
-                given(googleCalendarApiFacade.updateCalendarEvent(any(), any())).willReturn {
+                given(
+                    googleCalendarApiFacade.updateCalendarEvent(
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()
+                    )
+                ).willReturn {
                     CalendarEventFixtures.focusTimeCalendarEvent1.right()
                 }
                 given(googleCalendarApiFacade.createCalendarEvent(any(), any(), anyOrNull(), any(), any()))
@@ -240,9 +262,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
 
                 verify(googleCalendarApiFacade).updateCalendarEvent(
                     eq(UserFixtures.userWithPreferences),
-                    argThat {
-                        id == EventFixtures.updatedExistingFocusTime.id
-                    }
+                    eq(EventFixtures.updatedExistingFocusTime.id),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.title),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.description),
+                    eq(EventFixtures.updatedExistingFocusTime.getStartTime()),
+                    eq(EventFixtures.updatedExistingFocusTime.getEndTime()),
                 )
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
                     eq(UserFixtures.userWithPreferences),

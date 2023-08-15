@@ -6,7 +6,6 @@ import ai.timefold.solver.core.api.score.stream.ConstraintCollectors
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider
 import ai.timefold.solver.core.api.score.stream.Joiners
-import arrow.core.getOrElse
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
@@ -172,10 +171,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .filter { e -> e.originalCalendarEvent != null }
-            .filter { e ->
-                e.hasChangedFromOriginal(TimeZone.UTC)
-                    .getOrElse { throw IllegalStateException("We should not run solver with bad event data") }
-            }
+            .filter { e -> e.hasChangedFromOriginal(TimeZone.UTC) }
             .penalize(HardMediumSoftScore.ONE_MEDIUM) { 30 }
             .asConstraint("Existing focus time events should only be moved if they give more focus time")
     }

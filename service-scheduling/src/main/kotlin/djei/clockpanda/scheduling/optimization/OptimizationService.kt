@@ -84,9 +84,6 @@ class OptimizationService(
         val existingSchedule = userCalendarEvents
             .map { calendarEvent ->
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
-                    .getOrElse { error ->
-                        return OptimizationServiceError.EventError(error).left()
-                    }
             }
         val existingFocusTimes = existingSchedule.filter { it.type == CalendarEventType.FOCUS_TIME }
         // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
@@ -179,17 +176,18 @@ class OptimizationService(
                 val preferredTimeZone = user.preferences?.preferredTimeZone
                     ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
                 val hasChangedFromOriginal = it.hasChangedFromOriginal(preferredTimeZone)
-                    .getOrElse { return OptimizationServiceError.EventError(it).left() }
                 if (hasChangedFromOriginal) {
                     logger.info("Updating focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
-                    val updatedCalendarEvent = it.originalCalendarEvent.copy(
-                        startTime = it.getStartTime(),
-                        endTime = it.getEndTime()
-                    )
-                    googleCalendarApiFacade.updateCalendarEvent(user, updatedCalendarEvent)
-                        .getOrElse {
-                            return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
-                        }
+                    googleCalendarApiFacade.updateCalendarEvent(
+                        user,
+                        it.originalCalendarEvent.id,
+                        it.originalCalendarEvent.title,
+                        it.originalCalendarEvent.description,
+                        it.getStartTime(),
+                        it.getEndTime()
+                    ).getOrElse {
+                        return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                    }
                 } else {
                     logger.info("No change detected for focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
                 }

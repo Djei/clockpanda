@@ -1,7 +1,6 @@
 package djei.clockpanda.scheduling.googlecalendar
 
 import arrow.core.Either
-import arrow.core.getOrElse
 import com.google.api.client.googleapis.auth.oauth2.GoogleRefreshTokenRequest
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
 import com.google.api.client.util.DateTime
@@ -197,7 +196,6 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(calendarEvent1.title).isEqualTo("[ClockPanda] Focus Time")
                         assertThat(calendarEvent1.description).isEqualTo("description")
                         val timeSpan1 = calendarEvent1.getTimeSpan(TimeZone.of("America/New_York"))
-                            .getOrElse { fail("This should not fail") }
                         assertThat(timeSpan1.start).isEqualTo(Instant.parse("2021-01-10T10:00:00.000Z"))
                         assertThat(timeSpan1.end).isEqualTo(Instant.parse("2021-01-10T11:00:00.000Z"))
                         assertThat(calendarEvent1.iCalUid).isEqualTo("ical_uid_1")
@@ -208,7 +206,6 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(calendarEvent2.title).isEqualTo("")
                         assertThat(calendarEvent2.description).isEqualTo("")
                         val timeSpan2 = calendarEvent2.getTimeSpan(TimeZone.of("America/New_York"))
-                            .getOrElse { fail("This should not fail") }
                         assertThat(timeSpan2.start).isEqualTo(Instant.parse("2021-01-10T05:00:00.000Z"))
                         assertThat(timeSpan2.end).isEqualTo(Instant.parse("2021-01-11T05:00:00.000Z"))
                         assertThat(calendarEvent2.iCalUid).isEqualTo("ical_uid_2")
@@ -362,24 +359,6 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test updateCalendarEvent - updating external event type`() {
-        val result = googleCalendarApiFacade.updateCalendarEvent(
-            user,
-            CalendarEventFixtures.externalTypeCalendarEvent
-        )
-
-        when (result) {
-            is Either.Left -> {
-                assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError::class.java)
-                val error = result.value as GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError
-                assertThat(error.message).isEqualTo("google calendar api not allowed to update external event: ${CalendarEventFixtures.externalTypeCalendarEvent.id}")
-            }
-
-            is Either.Right -> fail("This should have failed")
-        }
-    }
-
-    @Test
     fun `test updateCalendarEvent - failed to retrieve user access token`() {
         // Clear access token cache to prevent us from getting one and force the retrieval failure
         googleCalendarApiFacade.clearAccessTokenCache()
@@ -389,7 +368,11 @@ class GoogleCalendarApiFacadeTest {
         ).use {
             val result = googleCalendarApiFacade.updateCalendarEvent(
                 user,
-                CalendarEventFixtures.focusTimeCalendarEvent1
+                CalendarEventFixtures.focusTimeCalendarEvent1.id,
+                CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                "description",
+                Clock.System.now(),
+                Clock.System.now()
             )
 
             when (result) {
@@ -425,7 +408,11 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.updateCalendarEvent(
                     user,
-                    CalendarEventFixtures.focusTimeCalendarEvent1
+                    CalendarEventFixtures.focusTimeCalendarEvent1.id,
+                    CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                    "description",
+                    Clock.System.now(),
+                    Clock.System.now()
                 )
 
                 when (result) {
@@ -481,7 +468,11 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.updateCalendarEvent(
                     user,
-                    CalendarEventFixtures.focusTimeCalendarEvent1
+                    CalendarEventFixtures.focusTimeCalendarEvent1.id,
+                    CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                    "description",
+                    Instant.parse("2021-01-01T00:00:00Z"),
+                    Instant.parse("2021-01-01T03:00:00Z")
                 )
 
                 when (result) {
@@ -489,9 +480,8 @@ class GoogleCalendarApiFacadeTest {
 
                     is Either.Right -> {
                         val expectedEventForUpdate = Event()
-                        expectedEventForUpdate.id = CalendarEventFixtures.focusTimeCalendarEvent1.id
-                        expectedEventForUpdate.summary = CalendarEventFixtures.focusTimeCalendarEvent1.title
-                        expectedEventForUpdate.description = CalendarEventFixtures.focusTimeCalendarEvent1.description
+                        expectedEventForUpdate.summary = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+                        expectedEventForUpdate.description = "description"
                         expectedEventForUpdate.start = EventDateTime().setDateTime(
                             DateTime.parseRfc3339("2021-01-01T00:00:00Z")
                         )

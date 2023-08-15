@@ -1,10 +1,8 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.model
 
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
-import djei.clockpanda.scheduling.optimization.model.Event
-import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.Instant
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

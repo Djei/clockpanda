@@ -1,7 +1,6 @@
-package djei.clockpanda.scheduling.optimization
+package djei.clockpanda.scheduling.optimization.model
 
 import djei.clockpanda.scheduling.model.TimeSpan
-import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime

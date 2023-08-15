@@ -39,12 +39,4 @@ sealed class GoogleCalendarApiFacadeError(
     data class NotAllowedToDeleteExternalEventError(
         val externalEventId: String
     ) : GoogleCalendarApiFacadeError("google calendar api not allowed to delete external event: $externalEventId")
-
-    data class NotAllowedToUpdateExternalEventError(
-        val externalEventId: String
-    ) : GoogleCalendarApiFacadeError("google calendar api not allowed to update external event: $externalEventId")
-
-    data class CalendarEventError(
-        val calendarEventError: djei.clockpanda.scheduling.model.CalendarEventError
-    ) : GoogleCalendarApiFacadeError("calendar event error: ${calendarEventError.message}", calendarEventError.cause)
 }

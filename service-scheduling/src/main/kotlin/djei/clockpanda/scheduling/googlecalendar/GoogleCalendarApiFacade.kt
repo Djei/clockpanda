@@ -90,21 +90,24 @@ class GoogleCalendarApiFacade(
 
     fun updateCalendarEvent(
         user: User,
-        calendarEvent: CalendarEvent
+        calendarEventId: String,
+        title: String,
+        description: String? = null,
+        startTime: Instant,
+        endTime: Instant
     ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
-        if (calendarEvent.getType() == CalendarEventType.EXTERNAL_EVENT) {
-            return GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError(calendarEvent.id).left()
-        }
-
         val accessToken = getAccessToken(user).getOrElse { return it.left() }
         val calendarService = getCalendarService(accessToken)
 
-        val eventForUpdate = calendarEvent.toGoogleCalendarEventForUpdate()
-            .getOrElse { return GoogleCalendarApiFacadeError.CalendarEventError(it).left() }
+        val eventToUpdate = Event()
+        eventToUpdate.summary = title
+        eventToUpdate.description = description
+        eventToUpdate.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
+        eventToUpdate.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
         return Either.catch {
             val result = calendarService
                 .events()
-                .update("primary", calendarEvent.id, eventForUpdate)
+                .update("primary", calendarEventId, eventToUpdate)
                 .execute()
             CalendarEvent.fromGoogleCalendarEvent(result)
         }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiUpdateEventError(it) }
