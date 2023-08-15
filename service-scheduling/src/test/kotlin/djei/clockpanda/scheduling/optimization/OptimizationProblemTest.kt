@@ -14,9 +14,11 @@ class OptimizationProblemTest {
     fun `test constructor validates start before end`() {
         val e = assertThrows<IllegalArgumentException> {
             OptimizationProblem(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2020-12-31T00:00:00Z")
+                parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                    optimizationRange = TimeSpan(
+                        start = Instant.parse("2021-01-01T00:00:00Z"),
+                        end = Instant.parse("2020-12-31T00:00:00Z")
+                    )
                 ),
                 schedule = emptyList(),
                 users = emptyList()
@@ -30,9 +32,11 @@ class OptimizationProblemTest {
     fun `test constructor validates start is at start of day in UTC`() {
         val e1 = assertThrows<IllegalArgumentException> {
             OptimizationProblem(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T05:00:00Z"),
-                    end = Instant.parse("2021-01-31T00:00:00Z")
+                parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                    optimizationRange = TimeSpan(
+                        start = Instant.parse("2021-01-01T05:00:00Z"),
+                        end = Instant.parse("2021-01-31T00:00:00Z")
+                    )
                 ),
                 schedule = emptyList(),
                 users = emptyList()
@@ -40,9 +44,11 @@ class OptimizationProblemTest {
         }
         val e2 = assertThrows<IllegalArgumentException> {
             OptimizationProblem(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:05:00Z"),
-                    end = Instant.parse("2021-01-31T00:00:00Z")
+                parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                    optimizationRange = TimeSpan(
+                        start = Instant.parse("2021-01-01T00:05:00Z"),
+                        end = Instant.parse("2021-01-31T00:00:00Z")
+                    )
                 ),
                 schedule = emptyList(),
                 users = emptyList()
@@ -57,9 +63,11 @@ class OptimizationProblemTest {
     fun `test constructor validates end is at start of day in UTC`() {
         val e1 = assertThrows<IllegalArgumentException> {
             OptimizationProblem(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-31T05:00:00Z")
+                parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                    optimizationRange = TimeSpan(
+                        start = Instant.parse("2021-01-01T00:00:00Z"),
+                        end = Instant.parse("2021-01-31T05:00:00Z")
+                    )
                 ),
                 schedule = emptyList(),
                 users = emptyList()
@@ -67,9 +75,11 @@ class OptimizationProblemTest {
         }
         val e2 = assertThrows<IllegalArgumentException> {
             OptimizationProblem(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-31T00:05:00Z")
+                parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                    optimizationRange = TimeSpan(
+                        start = Instant.parse("2021-01-01T00:00:00Z"),
+                        end = Instant.parse("2021-01-31T00:05:00Z")
+                    )
                 ),
                 schedule = emptyList(),
                 users = emptyList()
@@ -83,9 +93,11 @@ class OptimizationProblemTest {
     @Test
     fun `test getStartTimeGrainRange return proper values`() {
         val optimizationProblem = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = emptyList(),
             users = emptyList()

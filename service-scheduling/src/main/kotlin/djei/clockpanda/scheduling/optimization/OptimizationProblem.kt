@@ -4,6 +4,7 @@ import ai.timefold.solver.core.api.domain.solution.PlanningEntityCollectionPrope
 import ai.timefold.solver.core.api.domain.solution.PlanningScore
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
+import ai.timefold.solver.core.api.domain.solution.ProblemFactProperty
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
 import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import djei.clockpanda.model.User
@@ -16,7 +17,8 @@ import kotlinx.datetime.toLocalDateTime
 @NoArg
 @PlanningSolution
 class OptimizationProblem(
-    val optimizationRange: TimeSpan,
+    @ProblemFactProperty
+    val parametrization: OptimizationProblem.OptimizationProblemParametrization,
     @PlanningEntityCollectionProperty
     val schedule: List<Event>,
     @ProblemFactCollectionProperty
@@ -25,6 +27,7 @@ class OptimizationProblem(
     private var score: HardMediumSoftScore = HardMediumSoftScore.ZERO
 
     init {
+        val optimizationRange = parametrization.optimizationRange
         require(optimizationRange.start < optimizationRange.end) {
             "Optimization range start must be before end"
         }
@@ -53,6 +56,7 @@ class OptimizationProblem(
 
     @ValueRangeProvider(id = "startTimeGrainRange")
     fun getStartTimeGrainRange(): List<TimeGrain> {
+        val optimizationRange = parametrization.optimizationRange
         val result = mutableListOf<TimeGrain>()
         result.add(TimeGrain(optimizationRange.start))
         while (
@@ -62,4 +66,8 @@ class OptimizationProblem(
         }
         return result
     }
+
+    class OptimizationProblemParametrization(
+        val optimizationRange: TimeSpan
+    )
 }

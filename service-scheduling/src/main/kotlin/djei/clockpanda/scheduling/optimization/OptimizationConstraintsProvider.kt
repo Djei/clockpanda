@@ -9,7 +9,9 @@ import ai.timefold.solver.core.api.score.stream.Joiners
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.atDate
+import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
@@ -27,7 +29,8 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
             focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
             focusTimeShouldStartAndEndOnTheSameDay(constraintFactory),
-            focusTimeTotalAmountNotMeetingTheTarget(constraintFactory),
+            focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(constraintFactory),
+            focusTimeTotalAmountIsZeroInAWeekForGivenUser(constraintFactory),
             focusTimeShouldBeWithinPreferredFocusTimeRange(constraintFactory),
             focusTimesShouldBeScheduledOnTheHourOrHalfHour(constraintFactory)
         )
@@ -101,21 +104,59 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .asConstraint("Focus time should start and end on the same day")
     }
 
-    fun focusTimeTotalAmountNotMeetingTheTarget(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
-            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
-            .groupBy(Event::owner, ConstraintCollectors.sum(Event::getDurationInMinutes))
-            .join(
-                User::class.java,
-                Joiners.equal({ owner, _ -> owner }, User::email)
-            )
-            .penalize(HardMediumSoftScore.ONE_MEDIUM) { _, amountOfFocusTimeReserved, user ->
-                val userPreferences = user.preferences
-                val targetFocusTimeHoursPerWeek = userPreferences?.targetFocusTimeHoursPerWeek ?: 0
-                val missing = abs(targetFocusTimeHoursPerWeek * 60 * 2 - amountOfFocusTimeReserved)
-                missing / 15
+    fun focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(factory: ConstraintFactory): Constraint {
+        return factory.forEach(User::class.java)
+            .join(OptimizationProblem.OptimizationProblemParametrization::class.java)
+            // Create weekly buckets for each user over the problem optimization range
+            .flattenLast { p ->
+                val split = p.optimizationRange.start.plus(7 * 24, DateTimeUnit.HOUR)
+                listOf(
+                    TimeSpan(p.optimizationRange.start, split),
+                    TimeSpan(split, p.optimizationRange.end)
+                )
             }
-            .asConstraint("Focus time total amount not meeting the target")
+            // Join user buckets with all events that they contain
+            .join(
+                Event::class.java,
+                Joiners.equal({ u, _ -> u.email }, Event::owner),
+                Joiners.overlapping({ _, b -> b.start }, { _, b -> b.end }, Event::getStartTime, Event::getEndTime),
+                Joiners.filtering { _, _, e -> e.type == CalendarEventType.FOCUS_TIME }
+            )
+            // Group events in the buckets
+            .groupBy(
+                { u, _, _ -> u.email to u.preferences!!.targetFocusTimeHoursPerWeek },
+                { _, b, _ -> b.start.toEpochMilliseconds() },
+                ConstraintCollectors.sum { _, _, e -> e.getDurationInMinutes() }
+            )
+            .penalize(HardMediumSoftScore.ONE_MEDIUM) { userParameter, _, amountOfFocusTimeReserved ->
+                val missingInMinutes = abs(userParameter.second * 60 - amountOfFocusTimeReserved)
+                missingInMinutes
+            }
+            .asConstraint("Focus time total amount not meeting user weekly target")
+    }
+
+    fun focusTimeTotalAmountIsZeroInAWeekForGivenUser(factory: ConstraintFactory): Constraint {
+        return factory.forEach(User::class.java)
+            .join(OptimizationProblem.OptimizationProblemParametrization::class.java)
+            // Create weekly buckets for each user over the problem optimization range
+            .flattenLast { p ->
+                val split = p.optimizationRange.start.plus(7 * 24, DateTimeUnit.HOUR)
+                listOf(
+                    TimeSpan(p.optimizationRange.start, split),
+                    TimeSpan(split, p.optimizationRange.end)
+                )
+            }
+            .ifNotExists(
+                Event::class.java,
+                Joiners.equal({ u, _ -> u.email }, Event::owner),
+                Joiners.overlapping({ _, b -> b.start }, { _, b -> b.end }, Event::getStartTime, Event::getEndTime),
+                Joiners.filtering { _, _, e -> e.type == CalendarEventType.FOCUS_TIME }
+            )
+            .penalize(HardMediumSoftScore.ONE_MEDIUM) { user, _ ->
+                val missingInMinutes = user.preferences!!.targetFocusTimeHoursPerWeek * 60
+                missingInMinutes
+            }
+            .asConstraint("Focus time total amount is zero in a week for a given user")
     }
 
     fun focusTimeShouldBeWithinPreferredFocusTimeRange(factory: ConstraintFactory): Constraint {

@@ -79,9 +79,11 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(
                 focusTime1,
@@ -127,9 +129,11 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(focusTimeOutsideWorkingHours, focusTimeInsideWorkingHours),
             users = listOf(UserFixtures.userWithPreferences)
@@ -179,9 +183,11 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(
                 focusTimeWithStartAndEndDateNotSameDay,
@@ -198,6 +204,13 @@ class OptimizationConstraintsProviderTest {
 
     @Test
     fun `penalize if total focus time does not meet user target`() {
+        // userPreferences is set to preferred focus time range 14:00 - 17:00
+        val userPreferences = UserFixtures.userPreferences.copy(
+            targetFocusTimeHoursPerWeek = 20
+        )
+        val user = UserFixtures.userWithPreferences.copy(
+            preferences = userPreferences
+        )
         val threeHoursOfFocusTime = Event(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
@@ -205,7 +218,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 12,
-            owner = UserFixtures.userWithPreferences.email
+            owner = user.email
         )
         val fourHoursOfFocusTime = Event(
             id = "2",
@@ -214,7 +227,7 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-02T00:00:00Z")
             ),
             durationInTimeGrains = 16,
-            owner = UserFixtures.userWithPreferences.email
+            owner = user.email
         )
         val externalEvent1 = Event(
             id = "3",
@@ -223,23 +236,33 @@ class OptimizationConstraintsProviderTest {
                 start = Instant.parse("2021-01-03T00:00:00Z")
             ),
             durationInTimeGrains = 8,
-            owner = UserFixtures.userWithPreferences.email
+            owner = user.email
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(threeHoursOfFocusTime, fourHoursOfFocusTime, externalEvent1),
             users = listOf(UserFixtures.userWithPreferences)
         )
 
-        // User preference wants 20 hours of focus time per week, but only 7 hours are scheduled
-        // 33 hours missing equivalent to 132 15-minute blocks
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountNotMeetingTheTarget)
+        // User preference wants 20 hours of focus time per week
+        // - but only 7 hours are scheduled in the first week
+        // - 0 hours are scheduled in the second week
+        // This constraint does not penalize the second week because timefold does not support left joins
+        // https://stackoverflow.com/questions/67274703/optaplanner-constraint-streams-other-join-types-than-inner-join
+        // This completely removes empty buckets
+        // This forces us to implement a separate  `focusTimeTotalAmountIsZeroInAWeekForGivenUser` constraint for empty buckets
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget)
             .givenSolution(solution)
-            .penalizesBy(132)
+            .penalizesBy(13 * 60)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountIsZeroInAWeekForGivenUser)
+            .givenSolution(solution)
+            .penalizesBy(20 * 60)
     }
 
     @Test
@@ -281,9 +304,11 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(
                 focusTimeOutsidePreferredRange,
@@ -353,9 +378,11 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(
+                    start = Instant.parse("2021-01-01T00:00:00Z"),
+                    end = Instant.parse("2021-01-15T00:00:00Z")
+                )
             ),
             schedule = listOf(
                 onTheHour,

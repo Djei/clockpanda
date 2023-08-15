@@ -100,7 +100,9 @@ class OptimizationService(
         val scheduleToOptimize = existingSchedule + focusTimesToOptimize
 
         return OptimizationProblem(
-            optimizationRange = TimeSpan(optimizationRangeStart, optimizationRangeEnd),
+            parametrization = OptimizationProblem.OptimizationProblemParametrization(
+                optimizationRange = TimeSpan(optimizationRangeStart, optimizationRangeEnd)
+            ),
             schedule = scheduleToOptimize,
             users = listOf(user)
         ).right()
@@ -165,7 +167,7 @@ class OptimizationService(
             fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizedScheduleResult {
                 return OptimizedScheduleResult(
                     user = solvedOptimizationProblem.users.first(),
-                    optimizationRange = solvedOptimizationProblem.optimizationRange,
+                    optimizationRange = solvedOptimizationProblem.parametrization.optimizationRange,
                     focusTimes = solvedOptimizationProblem.schedule
                         .filter { it.type == CalendarEventType.FOCUS_TIME }
                 )
