@@ -35,8 +35,11 @@ Commit messages must be prefixed with one of the following tags:
 - [feature]: for commits implementing new features
 - [fix]: for commits fixing bugs
 - [opex]: for commits improving operational excellence e.g. security, logging, performance, monitoring
+- [devex]: for commits improving developer experience e.g. build, test, CI/CD
 - [codeclean]: for commits cleaning up code e.g. linting, variable renames
 - [doc]: for commits updating documentation
+
+Avoid using multiple tags for the same commit. The tag list is roughly ordered by priority if you need to use multiple tags.
 ## Testing before pushing
 ### Test suite
 You can build and run the full test suite using `make build`
