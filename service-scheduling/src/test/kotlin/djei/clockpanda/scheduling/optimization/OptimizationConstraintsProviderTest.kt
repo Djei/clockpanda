@@ -1,10 +1,12 @@
 package djei.clockpanda.scheduling.optimization
 
 import ai.timefold.solver.test.api.score.stream.ConstraintVerifier
+import djei.clockpanda.model.LocalTimeSpan
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.junit.jupiter.api.Test
 
@@ -241,74 +243,132 @@ class OptimizationConstraintsProviderTest {
     }
 
     @Test
-    fun `penalize if focus time does not start at the same time`() {
-        val focusTimeStartingAt7BeforeDaylightSaving = Event(
+    fun `penalize if focus time is not within preferred focus time range`() {
+        // userPreferences is set to preferred focus time range 14:00 - 17:00
+        val userPreferences = UserFixtures.userPreferences.copy(
+            preferredTimeZone = TimeZone.of("Europe/London"),
+            preferredFocusTimeRange = LocalTimeSpan(LocalTime(14, 0), LocalTime(17, 0))
+        )
+        val user = UserFixtures.userWithPreferences.copy(
+            preferences = userPreferences
+        )
+        val focusTimeOutsidePreferredRange = Event(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-24T07:00:00Z")
             ),
             durationInTimeGrains = 12,
-            owner = UserFixtures.userWithPreferences.email
+            owner = user.email
         )
-        val focusTimeStartingAt7AfterDaylightSaving = Event(
+        val focusTimeWithinPreferredRange = Event(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
             startTimeGrain = TimeGrain(
-                start = Instant.parse("2021-03-28T06:00:00Z")
+                start = Instant.parse("2021-03-25T16:00:00Z")
             ),
-            durationInTimeGrains = 16,
-            owner = UserFixtures.userWithPreferences.email
+            durationInTimeGrains = 4,
+            owner = user.email
         )
-        val focusTimeNotStartingAt7 = Event(
+        val externalEvent1OutsidePreferredRange = Event(
+            id = "3",
+            type = CalendarEventType.EXTERNAL_EVENT,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-26T07:00:00Z")
+            ),
+            durationInTimeGrains = 8,
+            owner = user.email
+        )
+
+        val solution = OptimizationProblem(
+            optimizationRange = TimeSpan(
+                start = Instant.parse("2021-01-01T00:00:00Z"),
+                end = Instant.parse("2021-01-15T00:00:00Z")
+            ),
+            schedule = listOf(
+                focusTimeOutsidePreferredRange,
+                focusTimeWithinPreferredRange,
+                externalEvent1OutsidePreferredRange
+            ),
+            users = listOf(user)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldBeWithinPreferredFocusTimeRange)
+            .givenSolution(solution)
+            .penalizesBy(12 * 15)
+    }
+
+    @Test
+    fun `penalize if focus time is not scheduled on the hour or half hour`() {
+        val userPreferences = UserFixtures.userPreferences.copy(
+            preferredTimeZone = TimeZone.of("Europe/London")
+        )
+        val user = UserFixtures.userWithPreferences.copy(
+            preferences = userPreferences
+        )
+        val onTheHour = Event(
+            id = "1",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-24T07:00:00Z")
+            ),
+            durationInTimeGrains = 12,
+            owner = user.email
+        )
+        val onTheHalfHour = Event(
+            id = "2",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-25T16:00:00Z")
+            ),
+            durationInTimeGrains = 4,
+            owner = user.email
+        )
+        val at15Minutes = Event(
             id = "3",
             type = CalendarEventType.FOCUS_TIME,
             startTimeGrain = TimeGrain(
-                start = Instant.parse("2021-03-28T06:15:00Z")
+                start = Instant.parse("2021-03-26T16:15:00Z")
             ),
-            durationInTimeGrains = 16,
-            owner = UserFixtures.userWithPreferences.email
+            durationInTimeGrains = 4,
+            owner = user.email
         )
-        val externalEvent1 = Event(
+        val at45Minutes = Event(
             id = "4",
+            type = CalendarEventType.FOCUS_TIME,
+            startTimeGrain = TimeGrain(
+                start = Instant.parse("2021-03-27T16:45:00Z")
+            ),
+            durationInTimeGrains = 4,
+            owner = user.email
+        )
+        val externalEvent = Event(
+            id = "5",
             type = CalendarEventType.EXTERNAL_EVENT,
             startTimeGrain = TimeGrain(
-                start = Instant.parse("2021-01-03T00:00:00Z")
+                start = Instant.parse("2021-03-26T07:15:00Z")
             ),
             durationInTimeGrains = 8,
-            owner = UserFixtures.userWithPreferences.email
+            owner = user.email
         )
 
-        val solutionWithNoPenalty = OptimizationProblem(
+        val solution = OptimizationProblem(
             optimizationRange = TimeSpan(
                 start = Instant.parse("2021-01-01T00:00:00Z"),
                 end = Instant.parse("2021-01-15T00:00:00Z")
             ),
             schedule = listOf(
-                focusTimeStartingAt7BeforeDaylightSaving,
-                focusTimeStartingAt7AfterDaylightSaving,
-                externalEvent1
+                onTheHour,
+                onTheHalfHour,
+                at15Minutes,
+                at45Minutes,
+                externalEvent
             ),
-            users = listOf(UserFixtures.userWithPreferences)
-        )
-        val solutionWithPenalty = OptimizationProblem(
-            optimizationRange = TimeSpan(
-                start = Instant.parse("2021-01-01T00:00:00Z"),
-                end = Instant.parse("2021-01-15T00:00:00Z")
-            ),
-            schedule = listOf(
-                focusTimeStartingAt7BeforeDaylightSaving,
-                focusTimeNotStartingAt7,
-                externalEvent1
-            ),
-            users = listOf(UserFixtures.userWithPreferences)
+            users = listOf(user)
         )
 
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldStartAtTheSameTimeEveryDay)
-            .givenSolution(solutionWithNoPenalty)
-            .penalizesBy(0)
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldStartAtTheSameTimeEveryDay)
-            .givenSolution(solutionWithPenalty)
-            .penalizesBy(56)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimesShouldBeScheduledOnTheHourOrHalfHour)
+            .givenSolution(solution)
+            .penalizesBy(2)
     }
 }

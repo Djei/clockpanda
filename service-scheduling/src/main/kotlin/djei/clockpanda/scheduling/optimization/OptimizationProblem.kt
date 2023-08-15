@@ -56,9 +56,9 @@ class OptimizationProblem(
         val result = mutableListOf<TimeGrain>()
         result.add(TimeGrain(optimizationRange.start))
         while (
-            result.last().start.plus(TimeGrain.GRAIN_LENGTH_IN_MINUTES, DateTimeUnit.MINUTE) < optimizationRange.end
+            result.last().start.plus(TimeGrain.TIME_GRAIN_RESOLUTION, DateTimeUnit.MINUTE) < optimizationRange.end
         ) {
-            result.add(TimeGrain(result.last().start.plus(TimeGrain.GRAIN_LENGTH_IN_MINUTES, DateTimeUnit.MINUTE)))
+            result.add(TimeGrain(result.last().start.plus(TimeGrain.TIME_GRAIN_RESOLUTION, DateTimeUnit.MINUTE)))
         }
         return result
     }

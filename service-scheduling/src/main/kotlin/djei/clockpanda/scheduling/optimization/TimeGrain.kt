@@ -6,6 +6,7 @@ data class TimeGrain(
     val start: Instant
 ) {
     companion object {
-        const val GRAIN_LENGTH_IN_MINUTES = 15
+        // The time grain resolution is the smallest resolution of time that we work in
+        const val TIME_GRAIN_RESOLUTION = 15
     }
 }

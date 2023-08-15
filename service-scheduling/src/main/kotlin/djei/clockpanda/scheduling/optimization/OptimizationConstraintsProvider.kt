@@ -13,22 +13,23 @@ import kotlinx.datetime.atDate
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
-import kotlin.time.DurationUnit
 
 class OptimizationConstraintsProvider : ConstraintProvider {
     // Constraint priority design
     // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
     // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
-    // 3. Hard constraint: Focus time should start and end on the same day
-    // 4. Medium constraint: Focus time total amount should reach the desired target
-    // 5. Soft constraint: Focus time events should start around the same time every day
+    // 3. Hard constraint: Focus time should start and end on the same day - fixed penalty per event
+    // 4. Medium constraint: Focus time total amount should reach the desired target - penalty proportional to amount missing
+    // 5. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
+    // 6. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
             focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
             focusTimeShouldStartAndEndOnTheSameDay(constraintFactory),
             focusTimeTotalAmountNotMeetingTheTarget(constraintFactory),
-            focusTimeShouldStartAtTheSameTimeEveryDay(constraintFactory)
+            focusTimeShouldBeWithinPreferredFocusTimeRange(constraintFactory),
+            focusTimesShouldBeScheduledOnTheHourOrHalfHour(constraintFactory)
         )
     }
 
@@ -64,10 +65,9 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 val userPreferences = user.preferences!!
                 val userPreferredTimeZone = userPreferences.preferredTimeZone
                 val eventLocalStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
-                // We only support specifying one working hour block per day for now
                 val workingHoursForEvent = userPreferences
                     .workingHours[eventLocalStartTime.dayOfWeek]
-                    ?.get(0)
+                    ?.get(0) // We only support specifying one working hour block per day for now
                     ?.let {
                         TimeSpan(
                             start = it.start.atDate(eventLocalStartTime.date).toInstant(userPreferredTimeZone),
@@ -77,20 +77,10 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 if (workingHoursForEvent == null) {
                     0
                 } else {
-                    var amountOutsideWorkingHours = 0
-                    amountOutsideWorkingHours += if (event.getStartTime() < workingHoursForEvent.start) {
-                        (workingHoursForEvent.start - event.getStartTime()).toInt(DurationUnit.MINUTES)
-                    } else {
-                        0
-                    }
-                    amountOutsideWorkingHours += if (event.getEndTime() > workingHoursForEvent.end) {
-                        (event.getEndTime() - workingHoursForEvent.end).toInt(DurationUnit.MINUTES)
-                    } else {
-                        0
-                    }
-                    amountOutsideWorkingHours
+                    event.computeOutsideRangeInMinutes(workingHoursForEvent)
                 }
-            }.penalize(HardMediumSoftScore.ONE_HARD) { amountOutsideWorkingHours -> amountOutsideWorkingHours }
+            }
+            .penalize(HardMediumSoftScore.ONE_HARD) { amountOutsideWorkingHours -> amountOutsideWorkingHours }
             .asConstraint("Focus time events should not be outside working hours")
     }
 
@@ -128,7 +118,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .asConstraint("Focus time total amount not meeting the target")
     }
 
-    fun focusTimeShouldStartAtTheSameTimeEveryDay(factory: ConstraintFactory): Constraint {
+    fun focusTimeShouldBeWithinPreferredFocusTimeRange(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
             .filter { e -> e.getDurationInMinutes() > 0 }
@@ -136,22 +126,35 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 User::class.java,
                 Joiners.equal(Event::owner, User::email)
             )
-            .groupBy({ _, _ -> 1 }, ConstraintCollectors.toList { event, user -> event to user })
-            .penalize(HardMediumSoftScore.ONE_SOFT) { _, pairs ->
-                // Calculate standard deviation of event start
-                val average = pairs.map { (event, user) ->
-                    val userPreferredTimeZone = user.preferences!!.preferredTimeZone
-                    val localEventStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
-                    localEventStartTime.hour * 60 + localEventStartTime.minute
-                }.average()
-                val variance = pairs.map { (event, user) ->
-                    val userPreferredTimeZone = user.preferences!!.preferredTimeZone
-                    val localEventStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
-                    val localEventStartTimeInMinutes = localEventStartTime.hour * 60 + localEventStartTime.minute
-                    (localEventStartTimeInMinutes - average) * (localEventStartTimeInMinutes - average)
-                }.average()
-                variance.toInt()
+            .map { event, user ->
+                val userPreferences = user.preferences!!
+                val userPreferredTimeZone = userPreferences.preferredTimeZone
+                val eventLocalStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
+                val preferredFocusTimeRange = userPreferences.preferredFocusTimeRange.let {
+                    TimeSpan(
+                        start = it.start.atDate(eventLocalStartTime.date).toInstant(userPreferredTimeZone),
+                        end = it.end.atDate(eventLocalStartTime.date).toInstant(userPreferredTimeZone)
+                    )
+                }
+                event.computeOutsideRangeInMinutes(preferredFocusTimeRange)
             }
-            .asConstraint("Focus time should start at the same time every day")
+            .penalize(HardMediumSoftScore.ONE_SOFT) { amountOutsidePreferredRange -> amountOutsidePreferredRange }
+            .asConstraint("Focus time events should be within preferred focus time range")
+    }
+
+    fun focusTimesShouldBeScheduledOnTheHourOrHalfHour(factory: ConstraintFactory): Constraint {
+        return factory.forEach(Event::class.java)
+            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .join(
+                User::class.java,
+                Joiners.equal(Event::owner, User::email)
+            )
+            .filter { event, user ->
+                val userPreferredTimeZone = user.preferences!!.preferredTimeZone
+                event.getStartTime().toLocalDateTime(userPreferredTimeZone).minute % 30 != 0
+            }
+            .penalize(HardMediumSoftScore.ONE_SOFT)
+            .asConstraint("Focus time should be scheduled on the hour or half hour")
     }
 }

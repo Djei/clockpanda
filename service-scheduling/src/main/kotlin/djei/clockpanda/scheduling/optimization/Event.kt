@@ -11,6 +11,7 @@ import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.scheduling.model.CalendarEvent
 import djei.clockpanda.scheduling.model.CalendarEventType
+import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -38,7 +39,7 @@ class Event(
             return Event(
                 id = calendarEvent.id,
                 startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
-                durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.GRAIN_LENGTH_IN_MINUTES,
+                durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
                 type = calendarEvent.getType(),
                 owner = calendarEvent.owner
             ).right()
@@ -56,7 +57,7 @@ class Event(
 
     fun getEndTime(): Instant {
         return startTimeGrain.start.plus(
-            (durationInTimeGrains ?: 0) * TimeGrain.GRAIN_LENGTH_IN_MINUTES,
+            (durationInTimeGrains ?: 0) * TimeGrain.TIME_GRAIN_RESOLUTION,
             DateTimeUnit.MINUTE
         )
     }
@@ -71,8 +72,19 @@ class Event(
         }
     }
 
+    fun computeOutsideRangeInMinutes(range: TimeSpan): Int {
+        var amountOfMinutesOutside = 0
+        if (getStartTime() < range.start) {
+            amountOfMinutesOutside += (minOf(getEndTime(), range.start) - getStartTime()).toInt(DurationUnit.MINUTES)
+        }
+        if (getEndTime() > range.end) {
+            amountOfMinutesOutside += (getEndTime() - maxOf(getStartTime(), range.end)).toInt(DurationUnit.MINUTES)
+        }
+        return amountOfMinutesOutside
+    }
+
     fun getDurationInMinutes(): Int {
-        return (durationInTimeGrains ?: 0) * TimeGrain.GRAIN_LENGTH_IN_MINUTES
+        return (durationInTimeGrains ?: 0) * TimeGrain.TIME_GRAIN_RESOLUTION
     }
 
     @ValueRangeProvider(id = "durationInTimeGrainsRange")
