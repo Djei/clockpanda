@@ -88,6 +88,28 @@ class GoogleCalendarApiFacade(
         }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(it) }
     }
 
+    fun updateCalendarEvent(
+        user: User,
+        calendarEvent: CalendarEvent
+    ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
+        if (calendarEvent.getType() == CalendarEventType.EXTERNAL_EVENT) {
+            return GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError(calendarEvent.id).left()
+        }
+
+        val accessToken = getAccessToken(user).getOrElse { return it.left() }
+        val calendarService = getCalendarService(accessToken)
+
+        val eventForUpdate = calendarEvent.toGoogleCalendarEventForUpdate()
+            .getOrElse { return GoogleCalendarApiFacadeError.CalendarEventError(it).left() }
+        return Either.catch {
+            val result = calendarService
+                .events()
+                .update("primary", calendarEvent.id, eventForUpdate)
+                .execute()
+            CalendarEvent.fromGoogleCalendarEvent(result)
+        }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiUpdateEventError(it) }
+    }
+
     fun deleteCalendarEvent(
         user: User,
         calendarEvent: CalendarEvent

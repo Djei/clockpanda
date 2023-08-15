@@ -1,7 +1,7 @@
 package djei.clockpanda.repository
 
 sealed class UserRepositoryError(
-    message: String,
+    override val message: String,
     override val cause: Throwable? = null
 ) : Error(message, cause) {
 

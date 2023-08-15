@@ -3,7 +3,9 @@ package djei.clockpanda.scheduling.model
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
+import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventDateTime
 import djei.clockpanda.model.CalendarProvider
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -48,6 +50,32 @@ data class CalendarEvent(
                 owner = googleCalendarEvent.organizer?.email ?: "unknown"
             )
         }
+    }
+
+    fun toGoogleCalendarEventForUpdate(): Either<CalendarEventError, Event> {
+        val eventToUpdate = Event()
+        eventToUpdate.id = id
+        eventToUpdate.summary = title
+        eventToUpdate.description = description
+        eventToUpdate.start = if (startDate != null) {
+            EventDateTime().setDate(DateTime.parseRfc3339(startDate.toString()))
+        } else if (startTime != null) {
+            EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
+        } else {
+            return CalendarEventError.ToGoogleCalendarEventForUpdateError(
+                IllegalStateException("Calendar event has neither startDate nor startTime")
+            ).left()
+        }
+        eventToUpdate.end = if (endDate != null) {
+            EventDateTime().setDate(DateTime.parseRfc3339(endDate.toString()))
+        } else if (endTime != null) {
+            EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
+        } else {
+            return CalendarEventError.ToGoogleCalendarEventForUpdateError(
+                IllegalStateException("Calendar event has neither endDate nor endTime")
+            ).left()
+        }
+        return eventToUpdate.right()
     }
 
     // This method simplifies figuring out the logic whether startDate/endDate or startTime/endTime should be used

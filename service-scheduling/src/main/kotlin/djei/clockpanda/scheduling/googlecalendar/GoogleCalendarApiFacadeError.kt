@@ -1,7 +1,7 @@
 package djei.clockpanda.scheduling.googlecalendar
 
 sealed class GoogleCalendarApiFacadeError(
-    message: String,
+    override val message: String,
     override val cause: Throwable? = null
 ) : Error(message, cause) {
     data class GoogleAuthApiGetAccessTokenError(
@@ -25,6 +25,13 @@ sealed class GoogleCalendarApiFacadeError(
         cause
     )
 
+    data class GoogleCalendarApiUpdateEventError(
+        override val cause: Throwable
+    ) : GoogleCalendarApiFacadeError(
+        "google calendar api update event error: ${cause.message ?: "unknown error"}",
+        cause
+    )
+
     data class GoogleCalendarApiListEventsError(
         override val cause: Throwable
     ) : GoogleCalendarApiFacadeError("google calendar api list events error: ${cause.message ?: "unknown error"}")
@@ -32,4 +39,12 @@ sealed class GoogleCalendarApiFacadeError(
     data class NotAllowedToDeleteExternalEventError(
         val externalEventId: String
     ) : GoogleCalendarApiFacadeError("google calendar api not allowed to delete external event: $externalEventId")
+
+    data class NotAllowedToUpdateExternalEventError(
+        val externalEventId: String
+    ) : GoogleCalendarApiFacadeError("google calendar api not allowed to update external event: $externalEventId")
+
+    data class CalendarEventError(
+        val calendarEventError: djei.clockpanda.scheduling.model.CalendarEventError
+    ) : GoogleCalendarApiFacadeError("calendar event error: ${calendarEventError.message}", calendarEventError.cause)
 }
