@@ -78,13 +78,15 @@ sealed interface UserPreferences {
     val preferredTimeZone: TimeZone
     val workingHours: WorkingHours
     val targetFocusTimeHoursPerWeek: Int
+    val preferredFocusTimeRange: LocalTimeSpan
 
     @Serializable
     @SerialName("1")
     data class Version1(
         override val preferredTimeZone: TimeZone,
         override val workingHours: WorkingHours,
-        override val targetFocusTimeHoursPerWeek: Int
+        override val targetFocusTimeHoursPerWeek: Int,
+        override val preferredFocusTimeRange: LocalTimeSpan
     ) : UserPreferences
 }
 
