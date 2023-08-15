@@ -6,7 +6,6 @@ import ai.timefold.solver.core.api.domain.solution.PlanningSolution
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
 import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.TimeSpan
 import kotlinx.datetime.DateTimeUnit
