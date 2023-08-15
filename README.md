@@ -6,9 +6,14 @@ The goal is to allow users to connect their calendar and let Clock Panda automat
 ---
 # Planned features and supported calendar platforms
 ## Features
-- Local personal usage
-- Self-hosting
-- Automatically optimize and schedule lunch, dinner, break and focus times based on existing calendar
+- [in progress] Local personal usage
+- [planned] Self-hosting
+- [in progress] Automatically optimize and schedule focus times
+- [planned] Automatically optimize and schedule lunch/dinner breaks
+- [planned] Prioritized TODO list
+- [planned] Analytics
+- [planned] Team schedule optimization
+
 ## Supported calendar platforms
 - Google Calendar
 
