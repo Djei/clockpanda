@@ -6,7 +6,7 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ---
 # Planned features and supported calendar platforms
 ## Features
-- [in progress] Local personal usage with docker desktop
+- [beta] Local personal usage
 - [planned] Self-hosting
 - [beta] Automatically optimize and schedule focus times
 - [planned] Automatically optimize and schedule lunch/dinner breaks
@@ -28,7 +28,20 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ---
 # How to use Clock Panda
 ## Local personal usage
+Clock Panda was designed to be hosted on a server. However, you can also run it locally for personal usage with some limitations:
+- Clock Panda is configured to regularly optimize your schedule but will not be able to do so when your computer is off or asleep
+- We cannot provide any security recommendations for running Clock Panda locally. You are responsible for securing your own computer and network
+- While locally running Clock Panda is regularly tested, we do not explicitly design Clock Panda to work with minimal consumer grade hardware requirements
+- Other potential limitations may be added as we continue to develop Clock Panda
 
+First follow the instructions in the "How to set up your Google calendar API credentials" section
+
+Open a terminal and run the following commands:
+```
+git clone git@github.com:Djei/clockpanda.git
+
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
 ## Self-host
 
 ---
@@ -54,15 +67,7 @@ You can build and run the full test suite using `make build`
 
 You can build and run a particular subproject using `./gradlew :<replace with subproject name>:check` e.g. `./gradlew :service-authnz:check`
 ### Local manual test
-You will first need to setup your own Google Calendar API credentials and add them to your local environment:
-1. Go to https://console.cloud.google.com/apis/credentials
-2. Create a project if needed
-3. Setup an OAuth consent screen and add your email as a test user
-4. Ask for the following 2 scopes 
- - auth/calendar.readonly
- - auth/calendar.events.owned
-5. In the Credentials tab, create an OAuth client ID
-6. Copy the client id and client secret in an `.env` file in `app/src/main/resources` (Use `.env.example` as a template)
+First follow the instructions in the "How to set up your Google calendar API credentials" section
 
 You can start a local Clock Panda instance using `make bootRun` and open `http://localhost:8001/` in your browser
 
@@ -70,3 +75,15 @@ If you need to connect a debugger to the Clock Panda instance, you can start it 
 
 Clock Panda is configured to run the schedule optimizer only every 30 minutes which is not ideal for testing the optimizer. 
 You can use the `OptimizationCronJobPlayground` test class to more rapidly iterate and get feedback. 
+
+---
+# How to set up your Google calendar API credentials
+When running locally or in a self-hosted environment, you will first need to setup your own Google Calendar API credentials and add them to your local environment:
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create a project if needed
+3. Setup an OAuth consent screen and add your email as a test user
+4. Ask for the following 2 scopes
+- auth/calendar.readonly
+- auth/calendar.events.owned
+5. In the Credentials tab, create an OAuth client ID
+6. Copy the client id and client secret in an `.env` file in `app/src/main/resources` (Use `.env.example` as a template)
