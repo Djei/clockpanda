@@ -1,4 +1,4 @@
-.PHONY: build bootRun bootRunDebug
+.PHONY: build bootRun bootRunDebug lint format
 
 # Any flags to pass into the build command
 GRADLEFLAGS =
@@ -18,3 +18,9 @@ bootRun:
 
 bootRunDebug:
 	$(GRADLE) bootRun --args='--spring.profiles.active=local' --debug-jvm $(GRADLEFLAGS)
+
+lint:
+	$(GRADLE) ktlintCheck
+
+format:
+	$(GRADLE) ktlintFormat
