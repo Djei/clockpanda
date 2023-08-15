@@ -52,6 +52,11 @@ data class User(
             lastUpdatedAt = lastUpdatedAt?.toJavaInstant()?.atOffset(ZoneOffset.UTC)
         )
     }
+
+    // Override toString to explicitly hide refresh token and avoid accidentally logging it
+    override fun toString(): String {
+        return "User(email='$email', calendarProvider=$calendarProvider, calendarConnectionStatus=$calendarConnectionStatus, preferences=$preferences, createdAt=$createdAt, lastUpdatedAt=$lastUpdatedAt)"
+    }
 }
 
 @Serializable
