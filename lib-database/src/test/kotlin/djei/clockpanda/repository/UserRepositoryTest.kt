@@ -6,12 +6,14 @@ import arrow.core.right
 import djei.clockpanda.jooq.tables.references.USER
 import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
+import djei.clockpanda.model.LocalTimeSpan
 import djei.clockpanda.model.User
 import djei.clockpanda.model.UserPreferences
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.testing.ClockPandaSpringBootTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
@@ -157,7 +159,8 @@ class UserRepositoryTest {
         val newUserPreferences = UserPreferences.Version1(
             preferredTimeZone = TimeZone.of("America/New_York"),
             workingHours = newWorkingHours,
-            targetFocusTimeHoursPerWeek = 40
+            targetFocusTimeHoursPerWeek = 40,
+            preferredFocusTimeRange = LocalTimeSpan(LocalTime(9, 0), LocalTime(12, 0))
         )
 
         userRepository.create(dslContext, initialUser)
