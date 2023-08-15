@@ -1,7 +1,7 @@
 # Clock Panda
 Clock Panda is an open source implementation of a schedule management and optimization system.
 
-The goal is to allow users to connect their calendar and let Clock Panda automatically optimize their schedule by creating blocks for lunch, dinner, breaks and focus time.
+The goal is to allow users to connect their work calendar and let Clock Panda automatically optimize their schedule by creating blocks for lunch, dinner, breaks and focus time.
 
 ---
 # Planned features and supported calendar platforms
