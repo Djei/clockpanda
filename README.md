@@ -74,7 +74,8 @@ You can start a local Clock Panda instance using `make bootRun` and open `http:/
 If you need to connect a debugger to the Clock Panda instance, you can start it using `make bootRunDebug` and connect to the debug port
 
 Clock Panda is configured to run the schedule optimizer only every 30 minutes which is not ideal for testing the optimizer. 
-You can use the `OptimizationCronJobPlayground` test class to more rapidly iterate and get feedback. 
+You can use the `OptimizationCronJobPlayground` test class to more rapidly iterate and get feedback (plus you can use your favorite IDE debugger).
+Alternatively, simply restarting the Clock Panda instance will also trigger an optimizer run.
 
 ---
 # How to set up your Google calendar API credentials
