@@ -18,9 +18,9 @@ import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_WEEKS
 import djei.clockpanda.scheduling.optimization.fixtures.EventFixtures
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
-import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.mockito.MockedStatic
 import org.mockito.Mockito.mock
@@ -45,11 +45,13 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var dslContext: DSLContext
+    lateinit var transactionManager: TransactionManager
 
     @Test
     fun `test run optimization cron job failure does not throw exception`() {
-        userRepository.create(dslContext, UserFixtures.userWithPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithPreferences)
+        }
         given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
             GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(RuntimeException("some error")).left()
         )
@@ -78,7 +80,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     users = listOf(UserFixtures.userWithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
-                userRepository.create(dslContext, UserFixtures.userWithPreferences)
+                transactionManager.transaction { ctx ->
+                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
                         CalendarEventFixtures.focusTimeCalendarEvent1,
@@ -139,7 +143,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     users = listOf(UserFixtures.userWithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
-                userRepository.create(dslContext, UserFixtures.userWithPreferences)
+                transactionManager.transaction { ctx ->
+                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
                         CalendarEventFixtures.focusTimeCalendarEvent1,
@@ -181,7 +187,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     users = listOf(UserFixtures.userWithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
-                userRepository.create(dslContext, UserFixtures.userWithPreferences)
+                transactionManager.transaction { ctx ->
+                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
                         CalendarEventFixtures.focusTimeCalendarEvent1,
@@ -226,7 +234,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     users = listOf(UserFixtures.userWithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
-                userRepository.create(dslContext, UserFixtures.userWithPreferences)
+                transactionManager.transaction { ctx ->
+                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
                         CalendarEventFixtures.focusTimeCalendarEvent1,

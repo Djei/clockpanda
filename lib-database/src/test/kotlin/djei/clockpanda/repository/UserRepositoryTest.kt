@@ -11,13 +11,14 @@ import djei.clockpanda.model.User
 import djei.clockpanda.model.UserPreferences
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.testing.ClockPandaSpringBootTest
+import djei.clockpanda.transaction.TransactionManager
+import djei.clockpanda.transaction.TransactionalContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
-import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.given
 import org.mockito.kotlin.mock
@@ -30,18 +31,20 @@ class UserRepositoryTest {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var dslContext: DSLContext
+    lateinit var transactionManager: TransactionManager
 
     @Test
     fun `test fetchByEmail should return null if no user found`() {
-        val result = userRepository.fetchByEmail(dslContext, "should_not_exist@github.com")
+        val result = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, "should_not_exist@github.com")
+        }
 
         assertThat(result).isEqualTo(null.right())
     }
 
     @Test
     fun `test fetchByEmail should return left value if query fails`() {
-        val mockCtx: DSLContext = mock()
+        val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.selectFrom(USER) } willThrow { exception }
 
@@ -52,17 +55,21 @@ class UserRepositoryTest {
 
     @Test
     fun `test list should return empty list if no user`() {
-        val result = userRepository.list(dslContext)
+        val result = transactionManager.transaction { ctx ->
+            userRepository.list(ctx)
+        }
 
         assertThat(result).isEqualTo(emptyList<User>().right())
     }
 
     @Test
     fun `test list should return all users`() {
-        userRepository.create(dslContext, UserFixtures.userWithNoPreferences)
-        userRepository.create(dslContext, UserFixtures.userWithPreferences)
+        val result = transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+            userRepository.create(ctx, UserFixtures.userWithPreferences)
 
-        val result = userRepository.list(dslContext)
+            userRepository.list(ctx)
+        }
 
         assertThat(result).isEqualTo(
             listOf(
@@ -74,7 +81,7 @@ class UserRepositoryTest {
 
     @Test
     fun `test list should return left value if query fails`() {
-        val mockCtx: DSLContext = mock()
+        val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.selectFrom(USER) } willThrow { exception }
 
@@ -108,14 +115,22 @@ class UserRepositoryTest {
             lastUpdatedAt = Clock.System.now()
         )
 
-        val nullValuesResult = userRepository.create(dslContext, nullValuesUser)
-        val allValuesResult = userRepository.create(dslContext, allValuesUser)
+        val nullValuesResult = transactionManager.transaction { ctx ->
+            userRepository.create(ctx, nullValuesUser)
+        }
+        val allValuesResult = transactionManager.transaction { ctx ->
+            userRepository.create(ctx, allValuesUser)
+        }
 
         assertThat(nullValuesResult).isEqualTo(nullValuesUser.right())
-        val fetchAfterCreateNullValuesUser = userRepository.fetchByEmail(dslContext, "djei@email.com")
+        val fetchAfterCreateNullValuesUser = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, "djei@email.com")
+        }
         assertThat(fetchAfterCreateNullValuesUser).isEqualTo(nullValuesUser.right())
         assertThat(allValuesResult).isEqualTo(allValuesUser.right())
-        val fetchAfterCreateAllValuesUser = userRepository.fetchByEmail(dslContext, "djei2@email.com")
+        val fetchAfterCreateAllValuesUser = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, "djei2@email.com")
+        }
         assertThat(fetchAfterCreateAllValuesUser).isEqualTo(allValuesUser.right())
     }
 
@@ -132,7 +147,7 @@ class UserRepositoryTest {
             createdAt = Clock.System.now(),
             lastUpdatedAt = Clock.System.now()
         )
-        val mockCtx: DSLContext = mock()
+        val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.insertInto(USER) } willThrow { exception }
 
@@ -163,10 +178,15 @@ class UserRepositoryTest {
             preferredFocusTimeRange = LocalTimeSpan(LocalTime(9, 0), LocalTime(12, 0))
         )
 
-        userRepository.create(dslContext, initialUser)
-        userRepository.updatePreferences(dslContext, initialUser.email, newUserPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, initialUser)
+            userRepository.updatePreferences(ctx, initialUser.email, newUserPreferences)
+        }
 
-        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@email.com")) {
+        val fetchAfterUpdateUser = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, "djei@email.com")
+        }
+        when (fetchAfterUpdateUser) {
             is Either.Left -> fail("Fetch should succeed")
             is Either.Right -> {
                 val updatedMetadata = fetchAfterUpdateUser.value!!.preferences
@@ -179,7 +199,7 @@ class UserRepositoryTest {
 
     @Test
     fun `test updateMetadata should return left if query fails`() {
-        val mockCtx: DSLContext = mock()
+        val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.update(USER) } willThrow { exception }
 
@@ -202,10 +222,15 @@ class UserRepositoryTest {
             lastUpdatedAt = Clock.System.now()
         )
 
-        userRepository.create(dslContext, initialUser)
-        userRepository.updateGoogleRefreshToken(dslContext, initialUser.email, "new-refresh-token")
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, initialUser)
+            userRepository.updateGoogleRefreshToken(ctx, initialUser.email, "new-refresh-token")
+        }
 
-        when (val fetchAfterUpdateUser = userRepository.fetchByEmail(dslContext, "djei@email.com")) {
+        val fetchAfterUpdateUser = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, "djei@email.com")
+        }
+        when (fetchAfterUpdateUser) {
             is Either.Left -> fail("Fetch should succeed")
             is Either.Right -> {
                 assertThat(fetchAfterUpdateUser.value!!.googleRefreshToken).isEqualTo("new-refresh-token")
@@ -215,7 +240,7 @@ class UserRepositoryTest {
 
     @Test
     fun `test updateGoogleRefreshToken should return left value if query fails`() {
-        val mockCtx: DSLContext = mock()
+        val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.update(USER) } willThrow { exception }
 

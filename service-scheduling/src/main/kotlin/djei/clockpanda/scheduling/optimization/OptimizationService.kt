@@ -21,9 +21,9 @@ import djei.clockpanda.scheduling.optimization.constraint.OptimizationConstraint
 import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
-import org.jooq.DSLContext
 import org.slf4j.Logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -34,7 +34,7 @@ class OptimizationService(
     private val solverSecondsSpentTerminationConfig: Long,
     private val googleCalendarApiFacade: GoogleCalendarApiFacade,
     private val userRepository: UserRepository,
-    private val dslContext: DSLContext,
+    private val transactionManager: TransactionManager,
     private val logger: Logger
 ) {
     companion object {
@@ -44,8 +44,9 @@ class OptimizationService(
     }
 
     fun calculateOptimizedSchedule(): Either<OptimizationServiceError, List<OptimizedScheduleResult>> {
-        val users = userRepository.list(dslContext)
-            .getOrElse { return OptimizationServiceError.UserRepositoryError(it).left() }
+        val users = transactionManager.transaction { ctx ->
+            userRepository.list(ctx)
+        }.getOrElse { return OptimizationServiceError.UserRepositoryError(it).left() }
         return users.map { user ->
             val problem = generateOptimizationProblem(user)
                 .getOrElse { return it.left() }

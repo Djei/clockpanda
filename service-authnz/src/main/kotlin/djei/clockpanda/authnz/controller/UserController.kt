@@ -5,8 +5,8 @@ import djei.clockpanda.authnz.model.getEmail
 import djei.clockpanda.model.User
 import djei.clockpanda.model.UserPreferences
 import djei.clockpanda.repository.UserRepository
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.serialization.Serializable
-import org.jooq.DSLContext
 import org.slf4j.Logger
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -17,13 +17,16 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class UserController(
     private val userRepository: UserRepository,
-    private val dslContext: DSLContext,
+    private val transactionManager: TransactionManager,
     private val logger: Logger
 ) {
     @GetMapping("/user")
     fun user(@AuthenticationPrincipal principal: OAuth2User): ResponseEntity<GetUserResponse> {
         val email = principal.getEmail()
-        return when (val fetchByEmailResult = userRepository.fetchByEmail(dslContext, email)) {
+        val fetchByEmailResult = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, email)
+        }
+        return when (fetchByEmailResult) {
             is Either.Left -> {
                 logger.error("Failed to fetch user by email: $email", fetchByEmailResult.value)
                 ResponseEntity.internalServerError()

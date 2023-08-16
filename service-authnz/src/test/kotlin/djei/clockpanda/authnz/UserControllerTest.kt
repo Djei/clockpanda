@@ -7,10 +7,10 @@ import djei.clockpanda.model.User
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.testing.ClockPandaSpringBootTest
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
-import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oidcLogin
@@ -26,7 +26,7 @@ class UserControllerTest {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var dslContext: DSLContext
+    lateinit var transactionManager: TransactionManager
 
     @Test
     fun `test get user - no authenticated user`() {
@@ -64,7 +64,9 @@ class UserControllerTest {
             createdAt = Clock.System.now(),
             lastUpdatedAt = Clock.System.now()
         )
-        userRepository.create(dslContext, allValuesUser)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, allValuesUser)
+        }
 
         val result = mockMvc.perform(
             MockMvcRequestBuilders.get("/user")

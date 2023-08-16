@@ -2,6 +2,7 @@ package djei.clockpanda.scheduling.optimization
 
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade
+import djei.clockpanda.transaction.TransactionManager
 import org.jooq.SQLDialect
 import org.jooq.impl.DSL
 import org.junit.jupiter.api.Disabled
@@ -18,6 +19,7 @@ class OptimizationCronJobPlayground {
         googleClientId = "",
         googleClientSecret = ""
     )
+    private val transactionManager = TransactionManager(dsl)
 
     @Test
     fun `test optimizeSchedule`() {
@@ -25,7 +27,7 @@ class OptimizationCronJobPlayground {
             solverSecondsSpentTerminationConfig = 30L,
             googleCalendarApiFacade = googleCalendarApiFacade,
             userRepository = userRepository,
-            dslContext = dsl,
+            transactionManager = transactionManager,
             logger = LoggerFactory.getLogger(OptimizationService::class.java)
         )
         OptimizationCronJob(

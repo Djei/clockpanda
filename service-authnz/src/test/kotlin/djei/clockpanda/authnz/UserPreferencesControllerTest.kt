@@ -5,11 +5,11 @@ import djei.clockpanda.authnz.controller.UserPreferencesController
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.testing.ClockPandaSpringBootTest
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
-import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
@@ -28,7 +28,7 @@ class UserPreferencesControllerTest {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var dslContext: DSLContext
+    lateinit var transactionManager: TransactionManager
 
     @Test
     fun `test putUserPreferences fails if no authenticated user`() {
@@ -114,7 +114,9 @@ class UserPreferencesControllerTest {
             email = UserFixtures.userWithNoPreferences.email,
             preferences = UserFixtures.userPreferences
         )
-        userRepository.create(dslContext, UserFixtures.userWithNoPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+        }
 
         val result = mockMvc.perform(
             MockMvcRequestBuilders.put("/user/preferences")
@@ -137,10 +139,12 @@ class UserPreferencesControllerTest {
         val successResponseContent =
             responseContent as UserPreferencesController.PutUserPreferencesResponse.PutUserPreferencesSuccessResponse
         assertThat(successResponseContent.email).isEqualTo(UserFixtures.userWithNoPreferences.email)
-        val fetchAfterPutPreferencesUser = userRepository.fetchByEmail(
-            dslContext,
-            UserFixtures.userWithNoPreferences.email
-        )
+        val fetchAfterPutPreferencesUser = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(
+                ctx,
+                UserFixtures.userWithNoPreferences.email
+            )
+        }
         when (fetchAfterPutPreferencesUser) {
             is Either.Left -> fail("Fetch should have succeeded")
             is Either.Right -> {

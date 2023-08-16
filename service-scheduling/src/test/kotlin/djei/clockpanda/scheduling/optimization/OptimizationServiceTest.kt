@@ -8,9 +8,9 @@ import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.SchedulingSpringBootTest
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacadeError
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
+import djei.clockpanda.transaction.TransactionManager
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
-import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.given
@@ -24,11 +24,13 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
     lateinit var userRepository: UserRepository
 
     @Autowired
-    lateinit var dslContext: DSLContext
+    lateinit var transactionManager: TransactionManager
 
     @Test
     fun `test optimizeSchedule returns left if user has no preferences`() {
-        userRepository.create(dslContext, UserFixtures.userWithNoPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+        }
 
         when (val result = optimizationService.calculateOptimizedSchedule()) {
             is Either.Left -> {
@@ -45,7 +47,9 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
 
     @Test
     fun `test optimizeSchedule returns left if google api failure`() {
-        userRepository.create(dslContext, UserFixtures.userWithPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithPreferences)
+        }
         given(
             googleCalendarApiFacade.listCalendarEvents(
                 any(),
@@ -69,7 +73,9 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
 
     @Test
     fun `test optimizeSchedule - happy path`() {
-        userRepository.create(dslContext, UserFixtures.userWithPreferences)
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, UserFixtures.userWithPreferences)
+        }
         given(
             googleCalendarApiFacade.listCalendarEvents(
                 any(),

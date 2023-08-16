@@ -6,9 +6,9 @@ import arrow.core.right
 import djei.clockpanda.authnz.model.getEmail
 import djei.clockpanda.model.UserPreferences
 import djei.clockpanda.repository.UserRepository
+import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
-import org.jooq.DSLContext
 import org.slf4j.Logger
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.ResponseEntity
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class UserPreferencesController(
     private val userRepository: UserRepository,
-    private val dslContext: DSLContext,
+    private val transactionManager: TransactionManager,
     private val logger: Logger
 ) {
 
@@ -36,11 +36,13 @@ class UserPreferencesController(
             }
 
             is Either.Right -> {
-                val updateMetadataResult = userRepository.updatePreferences(
-                    ctx = dslContext,
-                    email = request.email,
-                    preferences = request.preferences
-                )
+                val updateMetadataResult = transactionManager.transaction { ctx ->
+                    userRepository.updatePreferences(
+                        ctx = ctx,
+                        email = request.email,
+                        preferences = request.preferences
+                    )
+                }
                 when (updateMetadataResult) {
                     is Either.Left -> {
                         logger.error("Failed to update user metadata", updateMetadataResult.value)

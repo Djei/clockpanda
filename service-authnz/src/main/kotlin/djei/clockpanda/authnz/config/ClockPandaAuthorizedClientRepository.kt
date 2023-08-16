@@ -6,9 +6,9 @@ import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
 import djei.clockpanda.repository.UserRepository
+import djei.clockpanda.transaction.TransactionManager
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import org.jooq.DSLContext
 import org.slf4j.Logger
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component
 @Component
 class ClockPandaAuthorizedClientRepository(
     private val userRepository: UserRepository,
-    private val dslContext: DSLContext,
+    private val transactionManager: TransactionManager,
     private val logger: Logger,
     authorizedClientService: OAuth2AuthorizedClientService,
 ) : OAuth2AuthorizedClientRepository {
@@ -85,8 +85,10 @@ class ClockPandaAuthorizedClientRepository(
         val email = user.getEmail()
         val firstName = user.attributes["given_name"] as String
         val lastName = user.attributes["family_name"] as String
-
-        when (val fetchExistingUserResult = userRepository.fetchByEmail(dslContext, email)) {
+        val fetchExistingUserResult = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, email)
+        }
+        when (fetchExistingUserResult) {
             is Either.Left -> {
                 logger.error("Error fetching user by email", fetchExistingUserResult.value)
                 throw OAuth2AuthenticationException(
@@ -97,6 +99,7 @@ class ClockPandaAuthorizedClientRepository(
                     )
                 )
             }
+
             is Either.Right -> {
                 registerUser(fetchExistingUserResult.value, email, firstName, lastName, refreshToken)
             }
@@ -111,24 +114,28 @@ class ClockPandaAuthorizedClientRepository(
         refreshToken: OAuth2RefreshToken
     ) {
         val registrationResult = if (user == null) {
-            userRepository.create(
-                ctx = dslContext,
-                user = User(
-                    email = email,
-                    firstName = firstName,
-                    lastName = lastName,
-                    calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
-                    calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
-                    googleRefreshToken = refreshToken.tokenValue,
-                    preferences = null
+            transactionManager.transaction { ctx ->
+                userRepository.create(
+                    ctx = ctx,
+                    user = User(
+                        email = email,
+                        firstName = firstName,
+                        lastName = lastName,
+                        calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                        calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
+                        googleRefreshToken = refreshToken.tokenValue,
+                        preferences = null
+                    )
                 )
-            )
+            }
         } else {
-            userRepository.updateGoogleRefreshToken(
-                ctx = dslContext,
-                email = email,
-                refreshTokenValue = refreshToken.tokenValue
-            )
+            transactionManager.transaction { ctx ->
+                userRepository.updateGoogleRefreshToken(
+                    ctx = ctx,
+                    email = email,
+                    refreshTokenValue = refreshToken.tokenValue
+                )
+            }
         }
         when (registrationResult) {
             is Either.Left -> {
@@ -141,6 +148,7 @@ class ClockPandaAuthorizedClientRepository(
                     )
                 )
             }
+
             is Either.Right -> {
                 logger.info("Successfully registered user with email $email")
             }
