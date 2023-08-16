@@ -52,7 +52,6 @@ sealed interface CalendarEvent {
     fun getType(): CalendarEventType {
         return when (title) {
             CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE -> CalendarEventType.FOCUS_TIME
-            CLOCK_PANDA_MEAL_BREAK_EVENT_TITLE -> CalendarEventType.MEAL_BREAK
             else -> CalendarEventType.EXTERNAL_EVENT
         }
     }
@@ -103,7 +102,6 @@ sealed interface CalendarEvent {
 
 enum class CalendarEventType {
     FOCUS_TIME,
-    MEAL_BREAK,
 
     // External event is an event not created by Clock Panda
     // e.g. an event created directly on Google Calendar that does not respect our event categorization logic
@@ -112,4 +110,3 @@ enum class CalendarEventType {
 
 private const val CLOCK_PANDA_EVENT_TITLE_PREFIX = "[ClockPanda]"
 const val CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Focus Time"
-const val CLOCK_PANDA_MEAL_BREAK_EVENT_TITLE = "$CLOCK_PANDA_EVENT_TITLE_PREFIX Meal Break"

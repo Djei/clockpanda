@@ -8,9 +8,8 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ## Features
 - [beta] Local personal usage
 - [planned] Self-hosting
-- [beta] Automatically optimize and schedule focus times
-- [planned] Automatically optimize and schedule lunch/dinner breaks
-- [planned] Prioritized TODO list
+- [beta] Automatically schedule and protect focus times when you do deep work without any interruptions
+- [in progress] Prioritized task list: let Clock Panda automatically schedule tasks from your task list
 - [planned] Analytics
 - [planned] Team schedule optimization
 
@@ -43,6 +42,7 @@ git clone git@github.com:Djei/clockpanda.git
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 ## Self-host
+This feature is not yet available. Only local personal usage is supported at this moment. 
 
 ---
 # Contribution guidelines

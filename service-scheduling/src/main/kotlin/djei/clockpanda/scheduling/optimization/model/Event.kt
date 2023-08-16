@@ -97,8 +97,6 @@ class Event(
         return listOf(0) + when (type) {
             // Focus time are minimum 2 hours up to 8 hours
             CalendarEventType.FOCUS_TIME -> (8..24).map { it }
-            // Meal breaks are minimum 15 minutes up to 2 hours
-            CalendarEventType.MEAL_BREAK -> (1..8).map { it }
             else -> throw IllegalStateException("Duration in time grains range not defined for event type $type")
         }
     }
