@@ -8,9 +8,15 @@ import ai.timefold.solver.core.api.domain.solution.ProblemFactProperty
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
 import ai.timefold.solver.core.api.score.buildin.hardmediumsoft.HardMediumSoftScore
 import djei.clockpanda.model.User
+import djei.clockpanda.scheduling.extensions.getNextDayOfWeek
+import djei.clockpanda.scheduling.extensions.getPreviousDayOfWeek
 import djei.clockpanda.scheduling.model.TimeSpan
+import djei.clockpanda.scheduling.optimization.OptimizationService
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 
@@ -18,32 +24,13 @@ import kotlinx.datetime.toLocalDateTime
 @PlanningSolution
 class OptimizationProblem(
     @ProblemFactProperty
-    val parametrization: OptimizationProblemParametrization,
+    val parameters: OptimizationProblemParameters,
     @PlanningEntityCollectionProperty
     val schedule: List<Event>,
     @ProblemFactCollectionProperty
     val users: List<User>
 ) {
     private var score: HardMediumSoftScore = HardMediumSoftScore.ZERO
-
-    init {
-        val optimizationRange = parametrization.optimizationRange
-        require(optimizationRange.start < optimizationRange.end) {
-            "Optimization range start must be before end"
-        }
-        require(
-            optimizationRange.start.toLocalDateTime(TimeZone.UTC).hour == 0 &&
-                optimizationRange.start.toLocalDateTime(TimeZone.UTC).minute == 0
-        ) {
-            "Optimization range start must be at start of day in UTC"
-        }
-        require(
-            optimizationRange.end.toLocalDateTime(TimeZone.UTC).hour == 0 &&
-                optimizationRange.end.toLocalDateTime(TimeZone.UTC).minute == 0
-        ) {
-            "Optimization range end must be at start of day in UTC"
-        }
-    }
 
     @PlanningScore
     fun getPlanningScore(): HardMediumSoftScore {
@@ -56,18 +43,79 @@ class OptimizationProblem(
 
     @ValueRangeProvider(id = "startTimeGrainRange")
     fun getStartTimeGrainRange(): List<TimeGrain> {
-        val optimizationRange = parametrization.optimizationRange
+        val planningEntityOptimizationRange = parameters.planningEntityOptimizationRange
         val result = mutableListOf<TimeGrain>()
-        result.add(TimeGrain(optimizationRange.start))
+        result.add(TimeGrain(planningEntityOptimizationRange.start))
         while (
-            result.last().start.plus(TimeGrain.TIME_GRAIN_RESOLUTION, DateTimeUnit.MINUTE) < optimizationRange.end
+            result.last().start.plus(
+                TimeGrain.TIME_GRAIN_RESOLUTION,
+                DateTimeUnit.MINUTE
+            ) < planningEntityOptimizationRange.end
         ) {
             result.add(TimeGrain(result.last().start.plus(TimeGrain.TIME_GRAIN_RESOLUTION, DateTimeUnit.MINUTE)))
         }
         return result
     }
 
-    class OptimizationProblemParametrization(
-        val optimizationRange: TimeSpan
-    )
+    data class OptimizationProblemParameters(
+        val optimizationReferenceInstant: Instant,
+        val optimizationMaxRangeInWeeks: Int,
+        val weekStartDayOfWeek: DayOfWeek,
+    ) {
+        /**
+         * The planning entity optimization range is the range of time that planning entities can be moved around in to optimize our schedule
+         * We optimize for the following `optimizationMaxRange` calendar weeks including the week of the optimization reference date
+         * For example, if the optimization reference date is on Wednesday, we add `optimizationMaxRange` weeks at optimize until the sunday of that week
+         */
+        val planningEntityOptimizationRange: TimeSpan
+
+        /**
+         * The existing schedule consideration range is the range of the time that we need to pull existing events from to
+         * properly optimize the desired planning entity optimization range.
+         * For example, if the optimization reference date is on Wednesday, we need to pull existing events from the start of week
+         */
+        val existingScheduleConsiderationRange: TimeSpan
+
+        companion object {
+            val OPTIMIZATION_TIMEZONE = TimeZone.UTC
+        }
+
+        init {
+            val planningEntityOptimizationRangeStartDate = optimizationReferenceInstant
+                .toLocalDateTime(TimeZone.UTC)
+                .date
+                .plus(1, DateTimeUnit.DAY)
+            val planningEntityOptimizationRangeEndDate = planningEntityOptimizationRangeStartDate
+                .plus(optimizationMaxRangeInWeeks, DateTimeUnit.WEEK)
+                .getNextDayOfWeek(weekStartDayOfWeek, inclusive = false)
+            planningEntityOptimizationRange = TimeSpan(
+                start = planningEntityOptimizationRangeStartDate.atStartOfDayIn(OPTIMIZATION_TIMEZONE),
+                end = planningEntityOptimizationRangeEndDate.atStartOfDayIn(OPTIMIZATION_TIMEZONE)
+            )
+            val existingScheduleRangeStartDate = planningEntityOptimizationRange.start
+                .toLocalDateTime(OPTIMIZATION_TIMEZONE)
+                .date
+                .getPreviousDayOfWeek(OptimizationService.WEEK_START_DAY_OF_WEEK, inclusive = true)
+            existingScheduleConsiderationRange = TimeSpan(
+                start = existingScheduleRangeStartDate.atStartOfDayIn(OPTIMIZATION_TIMEZONE),
+                end = planningEntityOptimizationRange.end
+            )
+        }
+
+        fun splitExistingScheduleConsiderationRangeInWeeklyBuckets(): List<TimeSpan> {
+            val result = mutableListOf<TimeSpan>()
+            var currentStartDate = existingScheduleConsiderationRange.start.toLocalDateTime(OPTIMIZATION_TIMEZONE).date
+            while (currentStartDate < existingScheduleConsiderationRange.end.toLocalDateTime(OPTIMIZATION_TIMEZONE).date) {
+                val currentEndDate = currentStartDate.plus(1, DateTimeUnit.WEEK)
+                result.add(
+                    TimeSpan(
+                        currentStartDate.atStartOfDayIn(OPTIMIZATION_TIMEZONE),
+                        currentEndDate.atStartOfDayIn(OPTIMIZATION_TIMEZONE)
+                    )
+                )
+                currentStartDate = currentEndDate
+            }
+            return result
+        }
+    }
 }

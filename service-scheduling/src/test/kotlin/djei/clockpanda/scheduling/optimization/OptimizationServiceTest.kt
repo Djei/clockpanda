@@ -8,7 +8,6 @@ import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.SchedulingSpringBootTest
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacadeError
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
-import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_DAYS
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.fail
 import org.jooq.DSLContext
@@ -87,7 +86,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
                 assertThat(result.value).hasSize(1)
                 val solvedOptimizationProblem = result.value[0]
                 assertThat(solvedOptimizationProblem.user).isEqualTo(UserFixtures.userWithPreferences)
-                assertThat(solvedOptimizationProblem.focusTimes).hasSize(OPTIMIZATION_RANGE_IN_DAYS)
+                assertThat(solvedOptimizationProblem.focusTimes).hasSize(28)
             }
         }
     }

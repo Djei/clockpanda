@@ -14,11 +14,11 @@ import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.SchedulingSpringBootTest
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacadeError
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
-import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
-import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_DAYS
+import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_WEEKS
 import djei.clockpanda.scheduling.optimization.fixtures.EventFixtures
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import org.jooq.DSLContext
 import org.junit.jupiter.api.Test
@@ -65,11 +65,10 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         mockStatic(SolutionManager::class.java).use { solutionManagerMockStatic ->
             mockStatic(SolverFactory::class.java).use { solverFactoryMockStatic ->
                 val solvedOptimizationProblem = OptimizationProblem(
-                    parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                        optimizationRange = TimeSpan(
-                            start = Instant.parse("2021-01-01T00:00:00Z"),
-                            end = Instant.parse("2021-01-31T00:00:00Z")
-                        )
+                    parameters = OptimizationProblem.OptimizationProblemParameters(
+                        optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                        optimizationMaxRangeInWeeks = 2,
+                        weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
                         EventFixtures.noChangeExistingFocusTime,
@@ -128,11 +127,10 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         mockStatic(SolutionManager::class.java).use { solutionManagerMockStatic ->
             mockStatic(SolverFactory::class.java).use { solverFactoryMockStatic ->
                 val solvedOptimizationProblem = OptimizationProblem(
-                    parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                        optimizationRange = TimeSpan(
-                            start = Instant.parse("2021-01-01T00:00:00Z"),
-                            end = Instant.parse("2021-01-31T00:00:00Z")
-                        )
+                    parameters = OptimizationProblem.OptimizationProblemParameters(
+                        optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                        optimizationMaxRangeInWeeks = 2,
+                        weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
                         EventFixtures.existingFocusTimeToBeDeleted,
@@ -171,11 +169,10 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         mockStatic(SolutionManager::class.java).use { solutionManagerMockStatic ->
             mockStatic(SolverFactory::class.java).use { solverFactoryMockStatic ->
                 val solvedOptimizationProblem = OptimizationProblem(
-                    parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                        optimizationRange = TimeSpan(
-                            start = Instant.parse("2021-01-01T00:00:00Z"),
-                            end = Instant.parse("2021-01-31T00:00:00Z")
-                        )
+                    parameters = OptimizationProblem.OptimizationProblemParameters(
+                        optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                        optimizationMaxRangeInWeeks = 2,
+                        weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
                         EventFixtures.newFocusTimeToBeCreated,
@@ -215,11 +212,10 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         mockStatic(SolutionManager::class.java).use { solutionManagerMockStatic ->
             mockStatic(SolverFactory::class.java).use { solverFactoryMockStatic ->
                 val solvedOptimizationProblem = OptimizationProblem(
-                    parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                        optimizationRange = TimeSpan(
-                            start = Instant.parse("2021-01-01T00:00:00Z"),
-                            end = Instant.parse("2021-01-31T00:00:00Z")
-                        )
+                    parameters = OptimizationProblem.OptimizationProblemParameters(
+                        optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                        optimizationMaxRangeInWeeks = 2,
+                        weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
                         EventFixtures.newFocusTimeToBeCreated,
@@ -274,7 +270,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         id == EventFixtures.existingFocusTimeToBeDeleted.id
                     }
                 )
-                verify(googleCalendarApiFacade, atMost(OPTIMIZATION_RANGE_IN_DAYS)).createCalendarEvent(
+                verify(googleCalendarApiFacade, atMost(OPTIMIZATION_RANGE_IN_WEEKS)).createCalendarEvent(
                     any(),
                     eq(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE),
                     anyOrNull(),

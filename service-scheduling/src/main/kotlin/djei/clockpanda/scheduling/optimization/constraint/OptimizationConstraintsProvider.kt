@@ -11,10 +11,8 @@ import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
-import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
@@ -113,14 +111,10 @@ class OptimizationConstraintsProvider : ConstraintProvider {
 
     fun focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(factory: ConstraintFactory): Constraint {
         return factory.forEach(User::class.java)
-            .join(OptimizationProblem.OptimizationProblemParametrization::class.java)
+            .join(OptimizationProblem.OptimizationProblemParameters::class.java)
             // Create weekly buckets for each user over the problem optimization range
             .flattenLast { p ->
-                val split = p.optimizationRange.start.plus(7 * 24, DateTimeUnit.HOUR)
-                listOf(
-                    TimeSpan(p.optimizationRange.start, split),
-                    TimeSpan(split, p.optimizationRange.end)
-                )
+                p.splitExistingScheduleConsiderationRangeInWeeklyBuckets()
             }
             // Join user buckets with all events that they contain
             .join(
@@ -144,14 +138,10 @@ class OptimizationConstraintsProvider : ConstraintProvider {
 
     fun focusTimeTotalAmountIsZeroInAWeekForGivenUser(factory: ConstraintFactory): Constraint {
         return factory.forEach(User::class.java)
-            .join(OptimizationProblem.OptimizationProblemParametrization::class.java)
+            .join(OptimizationProblem.OptimizationProblemParameters::class.java)
             // Create weekly buckets for each user over the problem optimization range
             .flattenLast { p ->
-                val split = p.optimizationRange.start.plus(7 * 24, DateTimeUnit.HOUR)
-                listOf(
-                    TimeSpan(p.optimizationRange.start, split),
-                    TimeSpan(split, p.optimizationRange.end)
-                )
+                p.splitExistingScheduleConsiderationRangeInWeeklyBuckets()
             }
             .ifNotExists(
                 Event::class.java,

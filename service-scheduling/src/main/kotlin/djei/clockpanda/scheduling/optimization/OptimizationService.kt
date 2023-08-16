@@ -22,11 +22,7 @@ import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.Clock
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
-import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.DayOfWeek
 import org.jooq.DSLContext
 import org.slf4j.Logger
 import org.springframework.beans.factory.annotation.Value
@@ -43,7 +39,8 @@ class OptimizationService(
 ) {
     companion object {
         // Optimize for 2 weeks
-        const val OPTIMIZATION_RANGE_IN_DAYS = 14
+        const val OPTIMIZATION_RANGE_IN_WEEKS = 2
+        val WEEK_START_DAY_OF_WEEK = DayOfWeek.MONDAY
     }
 
     fun calculateOptimizedSchedule(): Either<OptimizationServiceError, List<OptimizedScheduleResult>> {
@@ -68,32 +65,38 @@ class OptimizationService(
         val userPreferences = user.preferences
             ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
 
-        // Start optimizing from tomorrow start of day in UTC
-        val optimizationRangeStart = Clock.System.now()
-            .toLocalDateTime(TimeZone.UTC)
-            .date
-            .plus(1, DateTimeUnit.DAY)
-            .atStartOfDayIn(TimeZone.UTC)
-        val optimizationRangeEnd = optimizationRangeStart.plus(24 * OPTIMIZATION_RANGE_IN_DAYS, DateTimeUnit.HOUR)
+        // Optimization works in UTC timezone: this is by design to avoid any DST issues
+        // when working with different users with different preferred time zones
+        val optimizationProblemParameters = OptimizationProblem.OptimizationProblemParameters(
+            optimizationReferenceInstant = Clock.System.now(),
+            optimizationMaxRangeInWeeks = OPTIMIZATION_RANGE_IN_WEEKS,
+            weekStartDayOfWeek = WEEK_START_DAY_OF_WEEK
+        )
 
+        val existingScheduleConsiderationRange = optimizationProblemParameters.existingScheduleConsiderationRange
         val userCalendarEvents = googleCalendarApiFacade.listCalendarEvents(
             user,
-            TimeSpan(optimizationRangeStart, optimizationRangeEnd)
+            TimeSpan(
+                existingScheduleConsiderationRange.start,
+                existingScheduleConsiderationRange.end
+            )
         ).getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
-
         val existingSchedule = userCalendarEvents
             .map { calendarEvent ->
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
             }
         val existingFocusTimes = existingSchedule.filter { it.type == CalendarEventType.FOCUS_TIME }
         val existingMealBreaks = existingSchedule.filter { it.type == CalendarEventType.MEAL_BREAK }
+
+        val planningEntityOptimizationRange = optimizationProblemParameters.planningEntityOptimizationRange
         // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
         // It will simply reduce some to 0 duration if it can't fit them all
-        val focusTimesToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS - existingFocusTimes.size).map { index ->
+        val focusTimeMaxPoolSize = OPTIMIZATION_RANGE_IN_WEEKS * 7 * 2 // 2 focus time block per day
+        val extraFocusTimesToOptimize = (1..focusTimeMaxPoolSize - existingFocusTimes.size).map { index ->
             Event(
                 id = "focus-time-$index",
                 type = CalendarEventType.FOCUS_TIME,
-                startTimeGrain = TimeGrain(optimizationRangeStart),
+                startTimeGrain = TimeGrain(planningEntityOptimizationRange.start),
                 durationInTimeGrains = 0,
                 originalCalendarEvent = null,
                 owner = user.email
@@ -101,22 +104,20 @@ class OptimizationService(
         }
         // We artificially ensure to have enough meal breaks event planning entities to be optimized by the solver
         // It will simply reduce some to 0 duration if it can't fit them all
-        val mealBreaksToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS - existingMealBreaks.size).map { index ->
+        val mealBreaksMaxPoolSize = OPTIMIZATION_RANGE_IN_WEEKS * 7 * 2 // 2 meal breaks per day
+        val mealBreaksToOptimize = (1..mealBreaksMaxPoolSize - existingMealBreaks.size).map { index ->
             Event(
                 id = "meal-break-$index",
                 type = CalendarEventType.MEAL_BREAK,
-                startTimeGrain = TimeGrain(optimizationRangeStart),
+                startTimeGrain = TimeGrain(planningEntityOptimizationRange.start),
                 durationInTimeGrains = 0,
                 originalCalendarEvent = null,
                 owner = user.email
             )
         }
-        val scheduleToOptimize = existingSchedule + focusTimesToOptimize + mealBreaksToOptimize
-
+        val scheduleToOptimize = existingSchedule + extraFocusTimesToOptimize + mealBreaksToOptimize
         return OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(optimizationRangeStart, optimizationRangeEnd)
-            ),
+            parameters = optimizationProblemParameters,
             schedule = scheduleToOptimize,
             users = listOf(user)
         ).right()
@@ -211,14 +212,12 @@ class OptimizationService(
 
     data class OptimizedScheduleResult(
         val user: User,
-        val optimizationRange: TimeSpan,
         val focusTimes: List<Event>
     ) {
         companion object {
             fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizedScheduleResult {
                 return OptimizedScheduleResult(
                     user = solvedOptimizationProblem.users.first(),
-                    optimizationRange = solvedOptimizationProblem.parametrization.optimizationRange,
                     focusTimes = solvedOptimizationProblem.schedule
                         .filter { it.type == CalendarEventType.FOCUS_TIME }
                 )

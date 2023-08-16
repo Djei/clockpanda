@@ -4,11 +4,11 @@ import ai.timefold.solver.test.api.score.stream.ConstraintVerifier
 import djei.clockpanda.model.LocalTimeSpan
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.scheduling.model.CalendarEventType
-import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -89,11 +89,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(
                 focusTime1,
@@ -141,11 +140,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(focusTimeOutsideWorkingHours, focusTimeInsideWorkingHours),
             users = listOf(UserFixtures.userWithPreferences)
@@ -198,11 +196,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(
                 focusTimeWithStartAndEndDateNotSameDay,
@@ -258,25 +255,27 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(threeHoursOfFocusTime, fourHoursOfFocusTime, externalEvent1),
             users = listOf(UserFixtures.userWithPreferences)
         )
 
         // User preference wants 20 hours of focus time per week
-        // - but only 7 hours are scheduled in the first week
-        // - 0 hours are scheduled in the second week
+        // Week 1 from 2020-12-28T00:00:00Z to 2021-01-04T00:00:00Z
+        // Week 2 from 2021-01-04T00:00:00Z to 2021-01-11T00:00:00Z
+        // Week 3 from 2021-01-11T00:00:00Z to 2021-01-18T00:00:00Z
+        // Week 1 has 2 focus times of 7 hours in it
+        // Week 2 and 3 have 0 focus times in them
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget)
             .givenSolution(solution)
             .penalizesBy(13 * 60)
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeTotalAmountIsZeroInAWeekForGivenUser)
             .givenSolution(solution)
-            .penalizesBy(20 * 60)
+            .penalizesBy(2 * 20 * 60)
     }
 
     @Test
@@ -313,11 +312,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(existingFocusTimeThatHasNotMoved, existingFocusTimeThatHasMoved, externalEvent1),
             users = listOf(UserFixtures.userWithPreferences)
@@ -370,11 +368,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(
                 focusTimeOutsidePreferredRange,
@@ -449,11 +446,10 @@ class OptimizationConstraintsProviderTest {
         )
 
         val solution = OptimizationProblem(
-            parametrization = OptimizationProblem.OptimizationProblemParametrization(
-                optimizationRange = TimeSpan(
-                    start = Instant.parse("2021-01-01T00:00:00Z"),
-                    end = Instant.parse("2021-01-15T00:00:00Z")
-                )
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(
                 onTheHour,
