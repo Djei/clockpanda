@@ -23,11 +23,11 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
-            focusTimeEventsShouldNotOverlapWithOtherEvents(constraintFactory),
+            clockPandaEventsShouldNotOverlapWithOtherEvents(constraintFactory),
             // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
-            focusTimeEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
+            clockPandaEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
             // 3. Hard constraint: Focus time should start and end on the same day - fixed penalty per event
-            focusTimeShouldStartAndEndOnTheSameDay(constraintFactory),
+            clockPandaEventsShouldStartAndEndOnTheSameDay(constraintFactory),
             // 4. Medium constraint: Focus time total amount should reach the desired target - penalty proportional to amount missing
             // Implemented as 2 constraints because empty weekly buckets are completely removed by first constraint
             // See https://stackoverflow.com/questions/67274703/optaplanner-constraint-streams-other-join-types-than-inner-join
@@ -43,7 +43,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
         )
     }
 
-    fun focusTimeEventsShouldNotOverlapWithOtherEvents(factory: ConstraintFactory): Constraint {
+    fun clockPandaEventsShouldNotOverlapWithOtherEvents(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
@@ -60,12 +60,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .penalize(HardMediumSoftScore.ONE_HARD) { event1, event2 ->
                 event1.computeOverlapInMinutes(event2)
             }
-            .asConstraint("Focus time events should not overlap with other events")
+            .asConstraint("Clock Panda events should not overlap with other events")
     }
 
-    fun focusTimeEventsShouldNotBeOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
+    fun clockPandaEventsShouldNotBeOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
-            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.type != CalendarEventType.EXTERNAL_EVENT }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
@@ -91,12 +91,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 }
             }
             .penalize(HardMediumSoftScore.ONE_HARD) { amountOutsideWorkingHours -> amountOutsideWorkingHours }
-            .asConstraint("Focus time events should not be outside working hours")
+            .asConstraint("Clock Panda Events should not be outside working hours")
     }
 
-    fun focusTimeShouldStartAndEndOnTheSameDay(factory: ConstraintFactory): Constraint {
+    fun clockPandaEventsShouldStartAndEndOnTheSameDay(factory: ConstraintFactory): Constraint {
         return factory.forEach(Event::class.java)
-            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.type != CalendarEventType.EXTERNAL_EVENT }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
@@ -108,7 +108,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                     event.getEndTime().toLocalDateTime(userPreferredTimeZone).date
             }
             .penalize(HardMediumSoftScore.ONE_HARD) { _, _ -> 1 }
-            .asConstraint("Focus time should start and end on the same day")
+            .asConstraint("Clock Panda Events should start and end on the same day")
     }
 
     fun focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(factory: ConstraintFactory): Constraint {

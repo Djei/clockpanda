@@ -86,6 +86,7 @@ class OptimizationService(
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
             }
         val existingFocusTimes = existingSchedule.filter { it.type == CalendarEventType.FOCUS_TIME }
+        val existingMealBreaks = existingSchedule.filter { it.type == CalendarEventType.MEAL_BREAK }
         // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
         // It will simply reduce some to 0 duration if it can't fit them all
         val focusTimesToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS - existingFocusTimes.size).map { index ->
@@ -98,7 +99,19 @@ class OptimizationService(
                 owner = user.email
             )
         }
-        val scheduleToOptimize = existingSchedule + focusTimesToOptimize
+        // We artificially ensure to have enough meal breaks event planning entities to be optimized by the solver
+        // It will simply reduce some to 0 duration if it can't fit them all
+        val mealBreaksToOptimize = (1..OPTIMIZATION_RANGE_IN_DAYS - existingMealBreaks.size).map { index ->
+            Event(
+                id = "meal-break-$index",
+                type = CalendarEventType.MEAL_BREAK,
+                startTimeGrain = TimeGrain(optimizationRangeStart),
+                durationInTimeGrains = 0,
+                originalCalendarEvent = null,
+                owner = user.email
+            )
+        }
+        val scheduleToOptimize = existingSchedule + focusTimesToOptimize + mealBreaksToOptimize
 
         return OptimizationProblem(
             parametrization = OptimizationProblem.OptimizationProblemParametrization(

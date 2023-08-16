@@ -112,7 +112,7 @@ class OptimizationConstraintsProviderTest {
         // - externalEvent3 is fully contained within focusTime2 - 60 mins
         // - externalEvent4 fully contains focusTime2 - 120 mins
         // - externalEvent4 partially overlaps with focusTime1 - 30 mins
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsShouldNotOverlapWithOtherEvents)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::clockPandaEventsShouldNotOverlapWithOtherEvents)
             .givenSolution(solution)
             .penalizesBy(270)
     }
@@ -153,7 +153,7 @@ class OptimizationConstraintsProviderTest {
 
         // Focus time 1 is outside of working hours and penalized for 60 minutes
         // Focus time 2 is inside of working hours and not penalized
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeEventsShouldNotBeOutsideOfWorkingHours)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::clockPandaEventsShouldNotBeOutsideOfWorkingHours)
             .givenSolution(solution)
             .penalizesBy(60)
     }
@@ -212,7 +212,7 @@ class OptimizationConstraintsProviderTest {
             users = listOf(user)
         )
 
-        constraintVerifier.verifyThat(OptimizationConstraintsProvider::focusTimeShouldStartAndEndOnTheSameDay)
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::clockPandaEventsShouldStartAndEndOnTheSameDay)
             .givenSolution(solution)
             .penalizesBy(1)
     }
