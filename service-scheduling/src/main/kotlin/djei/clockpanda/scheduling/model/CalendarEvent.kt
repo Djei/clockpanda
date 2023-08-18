@@ -12,6 +12,7 @@ sealed interface CalendarEvent {
     companion object {
         fun fromGoogleCalendarEvent(googleCalendarEvent: Event): CalendarEvent {
             if (googleCalendarEvent.start.dateTime != null && googleCalendarEvent.end.dateTime != null) {
+                googleCalendarEvent.transparency
                 return InstantCalendarEvent(
                     id = googleCalendarEvent.id,
                     title = googleCalendarEvent.summary ?: "",
@@ -21,7 +22,8 @@ sealed interface CalendarEvent {
                     isRecurring = googleCalendarEvent.recurringEventId != null,
                     owner = googleCalendarEvent.organizer?.email ?: "unknown",
                     startTime = Instant.parse(googleCalendarEvent.start.dateTime.toStringRfc3339()),
-                    endTime = Instant.parse(googleCalendarEvent.end.dateTime.toStringRfc3339())
+                    endTime = Instant.parse(googleCalendarEvent.end.dateTime.toStringRfc3339()),
+                    busy = googleCalendarEvent.transparency != "transparent"
                 )
             } else {
                 return LocalDateCalendarEvent(
@@ -33,7 +35,8 @@ sealed interface CalendarEvent {
                     isRecurring = googleCalendarEvent.recurringEventId != null,
                     owner = googleCalendarEvent.organizer?.email ?: "unknown",
                     startDate = LocalDate.parse(googleCalendarEvent.start.date.toStringRfc3339()),
-                    endDate = LocalDate.parse(googleCalendarEvent.end.date.toStringRfc3339())
+                    endDate = LocalDate.parse(googleCalendarEvent.end.date.toStringRfc3339()),
+                    busy = googleCalendarEvent.transparency != "transparent"
                 )
             }
         }
@@ -46,6 +49,7 @@ sealed interface CalendarEvent {
     val iCalUid: String
     val isRecurring: Boolean
     val owner: String
+    val busy: Boolean
 
     fun getTimeSpan(timeZone: TimeZone): TimeSpan
 
@@ -69,6 +73,7 @@ sealed interface CalendarEvent {
         override val iCalUid: String,
         override val isRecurring: Boolean,
         override val owner: String,
+        override val busy: Boolean,
         private val startTime: Instant,
         private val endTime: Instant
     ) : CalendarEvent {
@@ -88,6 +93,7 @@ sealed interface CalendarEvent {
         override val iCalUid: String,
         override val isRecurring: Boolean,
         override val owner: String,
+        override val busy: Boolean,
         private val startDate: LocalDate,
         private val endDate: LocalDate
     ) : CalendarEvent {

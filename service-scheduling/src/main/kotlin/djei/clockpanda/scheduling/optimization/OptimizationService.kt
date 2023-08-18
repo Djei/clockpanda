@@ -83,6 +83,8 @@ class OptimizationService(
             )
         ).getOrElse { return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left() }
         val existingSchedule = userCalendarEvents
+            // Only keep busy events from existing schedule as those are the only ones we need to plan around
+            .filter { it.busy }
             .map { calendarEvent ->
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
             }

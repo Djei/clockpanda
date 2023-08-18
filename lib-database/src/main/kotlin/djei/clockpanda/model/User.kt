@@ -1,7 +1,6 @@
 package djei.clockpanda.model
 
 import djei.clockpanda.jooq.tables.records.UserRecord
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toJavaInstant
@@ -20,8 +19,8 @@ data class User(
     val calendarConnectionStatus: CalendarConnectionStatus,
     val googleRefreshToken: String?,
     val preferences: UserPreferences?,
-    val createdAt: Instant = Clock.System.now(),
-    val lastUpdatedAt: Instant? = null
+    val createdAt: Instant,
+    val lastUpdatedAt: Instant?
 ) {
     companion object {
         fun fromJooqRecord(record: UserRecord): User {
@@ -80,6 +79,11 @@ sealed interface UserPreferences {
     val targetFocusTimeHoursPerWeek: Int
     val preferredFocusTimeRange: LocalTimeSpan
 
+    /**
+     * Here be dragons!!
+     * Once a version is actively used, we need to be careful of existing installation and make backward compatible updates
+     * If a non-backward compatible change is needed, you will need to define a new version and business logic should be able to handle all active versions
+     */
     @Serializable
     @SerialName("1")
     data class Version1(

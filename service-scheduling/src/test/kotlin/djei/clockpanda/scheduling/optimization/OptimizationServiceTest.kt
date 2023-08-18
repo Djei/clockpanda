@@ -82,7 +82,10 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
                 any()
             )
         ).willReturn(
-            listOf(CalendarEventFixtures.externalTypeCalendarEvent).right()
+            listOf(
+                CalendarEventFixtures.freeExternalTypeCalendarEvent,
+                CalendarEventFixtures.externalTypeCalendarEvent
+            ).right()
         )
 
         when (val result = optimizationService.calculateOptimizedSchedule()) {

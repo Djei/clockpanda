@@ -9,6 +9,7 @@ import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.transaction.TransactionManager
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import kotlinx.datetime.Clock
 import org.slf4j.Logger
 import org.springframework.security.core.Authentication
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient
@@ -124,7 +125,9 @@ class ClockPandaAuthorizedClientRepository(
                         calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
                         calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
                         googleRefreshToken = refreshToken.tokenValue,
-                        preferences = null
+                        preferences = null,
+                        createdAt = Clock.System.now(),
+                        lastUpdatedAt = null
                     )
                 )
             }
