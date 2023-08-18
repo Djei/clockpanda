@@ -76,7 +76,7 @@ class GoogleCalendarApiFacade(
 
         return Either.catch {
             val eventToInsert = Event()
-            eventToInsert.summary = title
+            eventToInsert.summary = "$title \uD83D\uDC3C"
             eventToInsert.description = description
             eventToInsert.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
             eventToInsert.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
@@ -100,7 +100,7 @@ class GoogleCalendarApiFacade(
         val calendarService = getCalendarService(accessToken)
 
         val eventToUpdate = Event()
-        eventToUpdate.summary = title
+        eventToUpdate.summary = "$title \uD83D\uDC3C"
         eventToUpdate.description = description
         eventToUpdate.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
         eventToUpdate.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))

@@ -348,7 +348,7 @@ class GoogleCalendarApiFacadeTest {
                         )
                         val eventParameter = eventCaptor.value
                         assertThat(eventParameter.id).isNull()
-                        assertThat(eventParameter.summary).isEqualTo(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
+                        assertThat(eventParameter.summary).isEqualTo(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE + " \uD83D\uDC3C")
                         assertThat(eventParameter.description).isEqualTo("description")
                         assertThat(eventParameter.start.dateTime.toStringRfc3339()).isEqualTo("2021-01-01T00:00:00.000Z")
                         assertThat(eventParameter.end.dateTime.toStringRfc3339()).isEqualTo("2021-01-01T01:00:00.000Z")
@@ -480,7 +480,7 @@ class GoogleCalendarApiFacadeTest {
 
                     is Either.Right -> {
                         val expectedEventForUpdate = Event()
-                        expectedEventForUpdate.summary = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+                        expectedEventForUpdate.summary = "$CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE \uD83D\uDC3C"
                         expectedEventForUpdate.description = "description"
                         expectedEventForUpdate.start = EventDateTime().setDateTime(
                             DateTime.parseRfc3339("2021-01-01T00:00:00Z")

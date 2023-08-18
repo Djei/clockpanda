@@ -54,10 +54,10 @@ sealed interface CalendarEvent {
     fun getTimeSpan(timeZone: TimeZone): TimeSpan
 
     fun getType(): CalendarEventType {
-        return when (title) {
-            CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE -> CalendarEventType.FOCUS_TIME
-            else -> CalendarEventType.EXTERNAL_EVENT
+        if (title.contains(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)) {
+            return CalendarEventType.FOCUS_TIME
         }
+        return CalendarEventType.EXTERNAL_EVENT
     }
 
     fun getDurationInMinutes(timeZone: TimeZone): Int {
