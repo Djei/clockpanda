@@ -2,12 +2,14 @@ package djei.clockpanda.scheduling.model.fixtures
 
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
-import djei.clockpanda.scheduling.model.CalendarEvent
+import djei.clockpanda.scheduling.model.CalendarEventAttendanceStatus
+import djei.clockpanda.scheduling.model.CalendarEventAttendee
+import djei.clockpanda.scheduling.model.InstantCalendarEvent
 import kotlinx.datetime.Instant
 
 class CalendarEventFixtures {
     companion object {
-        val freeExternalTypeCalendarEvent = CalendarEvent.InstantCalendarEvent(
+        val freeExternalTypeCalendarEvent = InstantCalendarEvent(
             id = "id_0",
             title = "external_type that does not match clock panda events",
             description = "description",
@@ -17,10 +19,16 @@ class CalendarEventFixtures {
             iCalUid = "unique_ical_uid_0",
             isRecurring = false,
             owner = "djei1@email.com",
-            busy = false
+            busy = false,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            )
         )
 
-        val externalTypeCalendarEvent = CalendarEvent.InstantCalendarEvent(
+        val externalTypeCalendarEvent = InstantCalendarEvent(
             id = "id_1",
             title = "external_type that does not match clock panda events",
             description = "description",
@@ -30,10 +38,16 @@ class CalendarEventFixtures {
             iCalUid = "unique_ical_uid_1",
             isRecurring = false,
             owner = "djei1@email.com",
-            busy = true
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            )
         )
 
-        val focusTimeCalendarEvent1 = CalendarEvent.InstantCalendarEvent(
+        val focusTimeCalendarEvent1 = InstantCalendarEvent(
             id = "id_2",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
@@ -43,10 +57,16 @@ class CalendarEventFixtures {
             iCalUid = "unique_ical_uid_2",
             isRecurring = false,
             owner = "djei1@email.com",
-            busy = true
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            )
         )
 
-        val focusTimeCalendarEvent2 = CalendarEvent.InstantCalendarEvent(
+        val focusTimeCalendarEvent2 = InstantCalendarEvent(
             id = "id_3",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
@@ -56,10 +76,16 @@ class CalendarEventFixtures {
             iCalUid = "unique_ical_uid_3",
             isRecurring = false,
             owner = "djei1@email.com",
-            busy = true
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            )
         )
 
-        val focusTimeCalendarEvent3 = CalendarEvent.InstantCalendarEvent(
+        val focusTimeCalendarEvent3 = InstantCalendarEvent(
             id = "id_3",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
@@ -69,7 +95,13 @@ class CalendarEventFixtures {
             iCalUid = "unique_ical_uid_3",
             isRecurring = false,
             owner = "djei1@email.com",
-            busy = true
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            )
         )
     }
 }

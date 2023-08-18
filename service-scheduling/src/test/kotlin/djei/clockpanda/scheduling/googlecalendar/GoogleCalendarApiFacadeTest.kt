@@ -6,6 +6,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventAttendee
 import com.google.api.services.calendar.model.EventDateTime
 import com.google.api.services.calendar.model.Events
 import djei.clockpanda.model.CalendarConnectionStatus
@@ -224,17 +225,38 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test createCalendarEvent - failed to retrieve user access token`() {
+    fun `test createClockPandaEvent - creating external event type`() {
+        val result = googleCalendarApiFacade.createClockPandaEvent(
+            user,
+            CalendarEventFixtures.externalTypeCalendarEvent.title,
+            CalendarEventFixtures.externalTypeCalendarEvent.description,
+            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).start,
+            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).end
+        )
+
+        when (result) {
+            is Either.Left -> {
+                assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.NotAllowedToCreateExternalEventError::class.java)
+                val error = result.value as GoogleCalendarApiFacadeError.NotAllowedToCreateExternalEventError
+                assertThat(error.message).isEqualTo("google calendar api not allowed to create external event ${CalendarEventFixtures.externalTypeCalendarEvent.title}")
+            }
+
+            is Either.Right -> fail("This should have failed")
+        }
+    }
+
+    @Test
+    fun `test createClockPandaEvent - failed to retrieve user access token`() {
         // Clear access token cache to prevent us from getting one and force the retrieval failure
         googleCalendarApiFacade.clearAccessTokenCache()
         mockConstructionWithAnswer(
             GoogleRefreshTokenRequest::class.java,
             { throw RuntimeException("failed to refresh token") }
         ).use {
-            val result = googleCalendarApiFacade.createCalendarEvent(
+            val result = googleCalendarApiFacade.createClockPandaEvent(
                 user,
-                "does_not_matter",
-                "does_not_matter",
+                CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                CalendarEventFixtures.focusTimeCalendarEvent1.description,
                 Instant.parse("2021-01-10T10:00:00.000Z"),
                 Instant.parse("2021-01-10T11:00:00.000Z"),
             )
@@ -252,7 +274,7 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test createCalendarEvent - call to google calendar api failed`() {
+    fun `test createClockPandaEvent - call to google calendar api failed`() {
         mockConstruction(
             GoogleRefreshTokenRequest::class.java
         ) { mock, _ ->
@@ -270,10 +292,10 @@ class GoogleCalendarApiFacadeTest {
                 `when`(mockBuilder.build()).thenReturn(mockCalendar)
                 `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to create event"))
             }.use {
-                val result = googleCalendarApiFacade.createCalendarEvent(
+                val result = googleCalendarApiFacade.createClockPandaEvent(
                     user,
-                    "does_not_matter",
-                    "does_not_matter",
+                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Instant.parse("2021-01-10T10:00:00.000Z"),
                     Instant.parse("2021-01-10T11:00:00.000Z"),
                 )
@@ -292,7 +314,7 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test createCalendarEvent - happy path`() {
+    fun `test createClockPandaEvent - happy path`() {
         val mockCalendarEvents = mock(Calendar.Events::class.java)
         val mockCalendarEventsInsert = mock(Calendar.Events.Insert::class.java)
         mockConstruction(
@@ -329,10 +351,10 @@ class GoogleCalendarApiFacadeTest {
                 )
                 `when`(mockCalendarEventsInsert.execute()).thenReturn(mockEvent1)
             }.use {
-                val result = googleCalendarApiFacade.createCalendarEvent(
+                val result = googleCalendarApiFacade.createClockPandaEvent(
                     user,
-                    CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
-                    "description",
+                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Instant.parse("2021-01-01T00:00:00.000Z"),
                     Instant.parse("2021-01-01T01:00:00.000Z")
                 )
@@ -352,6 +374,8 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(eventParameter.description).isEqualTo("description")
                         assertThat(eventParameter.start.dateTime.toStringRfc3339()).isEqualTo("2021-01-01T00:00:00.000Z")
                         assertThat(eventParameter.end.dateTime.toStringRfc3339()).isEqualTo("2021-01-01T01:00:00.000Z")
+                        assertThat(eventParameter.attendees[0].email).isEqualTo(user.email)
+                        assertThat(eventParameter.attendees[0].responseStatus).isEqualTo("accepted")
                     }
                 }
             }
@@ -359,18 +383,40 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test updateCalendarEvent - failed to retrieve user access token`() {
+    fun `test updateClockPandaEvent - updating external event type`() {
+        val result = googleCalendarApiFacade.updateClockPandaEvent(
+            user,
+            CalendarEventFixtures.externalTypeCalendarEvent.id,
+            CalendarEventFixtures.externalTypeCalendarEvent.title,
+            CalendarEventFixtures.externalTypeCalendarEvent.description,
+            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).start,
+            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).end
+        )
+
+        when (result) {
+            is Either.Left -> {
+                assertThat(result.value).isInstanceOf(GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError::class.java)
+                val error = result.value as GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError
+                assertThat(error.message).isEqualTo("google calendar api not allowed to update external event ${CalendarEventFixtures.externalTypeCalendarEvent.title}: ${CalendarEventFixtures.externalTypeCalendarEvent.id}")
+            }
+
+            is Either.Right -> fail("This should have failed")
+        }
+    }
+
+    @Test
+    fun `test updateClockPandaEvent - failed to retrieve user access token`() {
         // Clear access token cache to prevent us from getting one and force the retrieval failure
         googleCalendarApiFacade.clearAccessTokenCache()
         mockConstructionWithAnswer(
             GoogleRefreshTokenRequest::class.java,
             { throw RuntimeException("failed to refresh token") }
         ).use {
-            val result = googleCalendarApiFacade.updateCalendarEvent(
+            val result = googleCalendarApiFacade.updateClockPandaEvent(
                 user,
                 CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
-                "description",
+                CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                CalendarEventFixtures.focusTimeCalendarEvent1.description,
                 Clock.System.now(),
                 Clock.System.now()
             )
@@ -388,7 +434,7 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test updateCalendarEvent - call to google calendar api failed`() {
+    fun `test updateClockPandaEvent - call to google calendar api failed`() {
         mockConstruction(
             GoogleRefreshTokenRequest::class.java
         ) { mock, _ ->
@@ -406,11 +452,11 @@ class GoogleCalendarApiFacadeTest {
                 `when`(mockBuilder.build()).thenReturn(mockCalendar)
                 `when`(mockCalendar.events()).thenThrow(RuntimeException("failed to update event"))
             }.use {
-                val result = googleCalendarApiFacade.updateCalendarEvent(
+                val result = googleCalendarApiFacade.updateClockPandaEvent(
                     user,
                     CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                    CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
-                    "description",
+                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Clock.System.now(),
                     Clock.System.now()
                 )
@@ -429,7 +475,7 @@ class GoogleCalendarApiFacadeTest {
     }
 
     @Test
-    fun `test updateCalendarEvent - happy path`() {
+    fun `test updateClockPandaEvent - happy path`() {
         val mockCalendarEvents = mock(Calendar.Events::class.java)
         val mockCalendarEventsUpdate = mock(Calendar.Events.Update::class.java)
         mockConstruction(
@@ -466,11 +512,11 @@ class GoogleCalendarApiFacadeTest {
                 )
                 `when`(mockCalendarEventsUpdate.execute()).thenReturn(mockEvent1)
             }.use {
-                val result = googleCalendarApiFacade.updateCalendarEvent(
+                val result = googleCalendarApiFacade.updateClockPandaEvent(
                     user,
                     CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                    CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
-                    "description",
+                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
+                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Instant.parse("2021-01-01T00:00:00Z"),
                     Instant.parse("2021-01-01T03:00:00Z")
                 )
@@ -487,6 +533,11 @@ class GoogleCalendarApiFacadeTest {
                         )
                         expectedEventForUpdate.end = EventDateTime().setDateTime(
                             DateTime.parseRfc3339("2021-01-01T03:00:00Z")
+                        )
+                        expectedEventForUpdate.attendees = listOf(
+                            EventAttendee()
+                                .setEmail(user.email)
+                                .setResponseStatus("accepted")
                         )
                         verify(mockCalendarEvents).update(
                             eq("primary"),

@@ -85,6 +85,8 @@ class OptimizationService(
         val existingSchedule = userCalendarEvents
             // Only keep busy events from existing schedule as those are the only ones we need to plan around
             .filter { it.busy }
+            // This works for now as we are only optimizing for a single user
+            .filter { it.isUserAttending(user.email) }
             .map { calendarEvent ->
                 Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
             }
@@ -150,7 +152,7 @@ class OptimizationService(
             it.getDurationInMinutes() != 0
         }.forEach { it ->
             logger.info("Creating focus time event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
-            googleCalendarApiFacade.createCalendarEvent(
+            googleCalendarApiFacade.createClockPandaEvent(
                 user = user,
                 title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
                 description = null,
@@ -181,7 +183,7 @@ class OptimizationService(
                 val hasChangedFromOriginal = it.hasChangedFromOriginal(preferredTimeZone)
                 if (hasChangedFromOriginal) {
                     logger.info("Updating focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
-                    googleCalendarApiFacade.updateCalendarEvent(
+                    googleCalendarApiFacade.updateClockPandaEvent(
                         user,
                         it.originalCalendarEvent.id,
                         it.originalCalendarEvent.title,

@@ -9,6 +9,7 @@ import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.Calendar
 import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventAttendee
 import com.google.api.services.calendar.model.EventDateTime
 import com.google.auth.http.HttpCredentialsAdapter
 import com.google.auth.oauth2.AccessToken
@@ -64,13 +65,16 @@ class GoogleCalendarApiFacade(
             .map { it.map(CalendarEvent::fromGoogleCalendarEvent) }
     }
 
-    fun createCalendarEvent(
+    fun createClockPandaEvent(
         user: User,
         title: String,
         description: String? = null,
         startTime: Instant,
         endTime: Instant
     ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
+        if (CalendarEventType.fromCalendarEventTitle(title) == CalendarEventType.EXTERNAL_EVENT) {
+            return GoogleCalendarApiFacadeError.NotAllowedToCreateExternalEventError(title).left()
+        }
         val accessToken = getAccessToken(user).getOrElse { return it.left() }
         val calendarService = getCalendarService(accessToken)
 
@@ -80,6 +84,11 @@ class GoogleCalendarApiFacade(
             eventToInsert.description = description
             eventToInsert.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
             eventToInsert.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
+            eventToInsert.attendees = listOf(
+                EventAttendee()
+                    .setEmail(user.email)
+                    .setResponseStatus("accepted")
+            )
             val result = calendarService.events().insert(
                 "primary",
                 eventToInsert
@@ -88,7 +97,7 @@ class GoogleCalendarApiFacade(
         }.mapLeft { GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(it) }
     }
 
-    fun updateCalendarEvent(
+    fun updateClockPandaEvent(
         user: User,
         calendarEventId: String,
         title: String,
@@ -96,6 +105,9 @@ class GoogleCalendarApiFacade(
         startTime: Instant,
         endTime: Instant
     ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
+        if (CalendarEventType.fromCalendarEventTitle(title) == CalendarEventType.EXTERNAL_EVENT) {
+            return GoogleCalendarApiFacadeError.NotAllowedToUpdateExternalEventError(calendarEventId, title).left()
+        }
         val accessToken = getAccessToken(user).getOrElse { return it.left() }
         val calendarService = getCalendarService(accessToken)
 
@@ -104,6 +116,11 @@ class GoogleCalendarApiFacade(
         eventToUpdate.description = description
         eventToUpdate.start = EventDateTime().setDateTime(DateTime.parseRfc3339(startTime.toString()))
         eventToUpdate.end = EventDateTime().setDateTime(DateTime.parseRfc3339(endTime.toString()))
+        eventToUpdate.attendees = listOf(
+            EventAttendee()
+                .setEmail(user.email)
+                .setResponseStatus("accepted")
+        )
         return Either.catch {
             val result = calendarService
                 .events()
