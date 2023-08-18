@@ -12,6 +12,7 @@ import djei.clockpanda.scheduling.extensions.getNextDayOfWeek
 import djei.clockpanda.scheduling.extensions.getPreviousDayOfWeek
 import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.optimization.OptimizationService
+import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
@@ -58,7 +59,9 @@ class OptimizationProblem(
     }
 
     data class OptimizationProblemParameters(
-        val optimizationReferenceInstant: Instant,
+        // We allow passing a reference instant for testing purposes
+        // But for production we should default to using current time as reference
+        val optimizationReferenceInstant: Instant = Clock.System.now(),
         val optimizationMaxRangeInWeeks: Int,
         val weekStartDayOfWeek: DayOfWeek,
     ) {
@@ -77,14 +80,19 @@ class OptimizationProblem(
         val existingScheduleConsiderationRange: TimeSpan
 
         companion object {
+            // Optimization works in UTC timezone: this is by design to avoid any DST issues
+            // when working with different users with different preferred time zones
             val OPTIMIZATION_TIMEZONE = TimeZone.UTC
         }
 
         init {
             val planningEntityOptimizationRangeStartDate = optimizationReferenceInstant
-                .toLocalDateTime(TimeZone.UTC)
+                .toLocalDateTime(OPTIMIZATION_TIMEZONE)
                 .date
-                .plus(1, DateTimeUnit.DAY)
+                // Reference instant is usually current
+                // Therefore only start optimizing for the day after tomorrow
+                // We do not want to change tomorrow's schedule as this would be bad user experience
+                .plus(2, DateTimeUnit.DAY)
             val planningEntityOptimizationRangeEndDate = planningEntityOptimizationRangeStartDate
                 .plus(optimizationMaxRangeInWeeks, DateTimeUnit.WEEK)
                 .getNextDayOfWeek(weekStartDayOfWeek, inclusive = false)

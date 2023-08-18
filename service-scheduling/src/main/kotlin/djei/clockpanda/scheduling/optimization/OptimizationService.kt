@@ -22,7 +22,6 @@ import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import djei.clockpanda.transaction.TransactionManager
-import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
 import org.slf4j.Logger
 import org.springframework.beans.factory.annotation.Value
@@ -66,10 +65,7 @@ class OptimizationService(
         val userPreferences = user.preferences
             ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
 
-        // Optimization works in UTC timezone: this is by design to avoid any DST issues
-        // when working with different users with different preferred time zones
         val optimizationProblemParameters = OptimizationProblem.OptimizationProblemParameters(
-            optimizationReferenceInstant = Clock.System.now(),
             optimizationMaxRangeInWeeks = OPTIMIZATION_RANGE_IN_WEEKS,
             weekStartDayOfWeek = WEEK_START_DAY_OF_WEEK
         )

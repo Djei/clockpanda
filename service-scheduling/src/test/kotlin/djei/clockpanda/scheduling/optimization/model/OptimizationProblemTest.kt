@@ -25,14 +25,14 @@ class OptimizationProblemTest {
         val result = optimizationProblem.getStartTimeGrainRange()
 
         assertThat(parameters.planningEntityOptimizationRange.start).isEqualTo(
-            Instant.parse("2023-08-17T00:00:00Z")
+            Instant.parse("2023-08-18T00:00:00Z")
         )
         assertThat(parameters.planningEntityOptimizationRange.end).isEqualTo(
             Instant.parse("2023-09-04T00:00:00Z")
         )
-        // 18 days in planning entity optimization range
+        // 17 days in planning entity optimization range
         // 96 15-minutes time grains per day
-        assertThat(result.size).isEqualTo(96 * 18)
+        assertThat(result.size).isEqualTo(96 * 17)
         // Check that all time grains are at the 15 minutes mark
         assertThat(result.all { it.start.toLocalDateTime(TimeZone.UTC).minute in listOf(0, 15, 30, 45) })
         // Check that all time grains are different
@@ -53,7 +53,7 @@ class OptimizationProblemTest {
         )
 
         assertThat(optimizationExecutedOnWednesdayParameters.planningEntityOptimizationRange.start).isEqualTo(
-            Instant.parse("2023-08-17T00:00:00Z")
+            Instant.parse("2023-08-18T00:00:00Z")
         )
         assertThat(optimizationExecutedOnWednesdayParameters.planningEntityOptimizationRange.end).isEqualTo(
             Instant.parse("2023-09-04T00:00:00Z")
@@ -65,7 +65,7 @@ class OptimizationProblemTest {
             Instant.parse("2023-09-04T00:00:00Z")
         )
         assertThat(optimizationExecutedOnSundayParameters.planningEntityOptimizationRange.start).isEqualTo(
-            Instant.parse("2023-08-14T00:00:00Z")
+            Instant.parse("2023-08-15T00:00:00Z")
         )
         assertThat(optimizationExecutedOnSundayParameters.planningEntityOptimizationRange.end).isEqualTo(
             Instant.parse("2023-09-04T00:00:00Z")
