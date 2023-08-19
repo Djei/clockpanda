@@ -13,6 +13,7 @@ import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
 import djei.clockpanda.model.fixtures.UserFixtures
+import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade.Companion.EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
@@ -30,6 +31,7 @@ import org.mockito.ArgumentCaptor
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockConstruction
 import org.mockito.Mockito.mockConstructionWithAnswer
+import org.mockito.Mockito.never
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
@@ -201,7 +203,7 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(timeSpan1.end).isEqualTo(Instant.parse("2021-01-10T11:00:00.000Z"))
                         assertThat(calendarEvent1.iCalUid).isEqualTo("ical_uid_1")
                         assertThat(calendarEvent1.isRecurring).isTrue
-                        assertThat(calendarEvent1.getType()).isEqualTo(CalendarEventType.FOCUS_TIME)
+                        assertThat(calendarEvent1.getCalendarEventType()).isEqualTo(CalendarEventType.FOCUS_TIME)
                         val calendarEvent2 = calendarEvents[1]
                         assertThat(calendarEvent2.id).isEqualTo("event_id_2")
                         assertThat(calendarEvent2.title).isEqualTo("")
@@ -211,7 +213,7 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(timeSpan2.end).isEqualTo(Instant.parse("2021-01-11T05:00:00.000Z"))
                         assertThat(calendarEvent2.iCalUid).isEqualTo("ical_uid_2")
                         assertThat(calendarEvent2.isRecurring).isFalse
-                        assertThat(calendarEvent2.getType()).isEqualTo(CalendarEventType.EXTERNAL_EVENT)
+                        assertThat(calendarEvent2.getCalendarEventType()).isEqualTo(CalendarEventType.EXTERNAL_EVENT)
                         verify(mockCalendarEventsList).singleEvents = true
                         verify(mockCalendarEventsList).timeMin = DateTime(timeSpan.start.toEpochMilliseconds())
                         verify(mockCalendarEventsList).timeMax = DateTime(timeSpan.end.toEpochMilliseconds())
@@ -231,7 +233,8 @@ class GoogleCalendarApiFacadeTest {
             CalendarEventFixtures.externalTypeCalendarEvent.title,
             CalendarEventFixtures.externalTypeCalendarEvent.description,
             CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).start,
-            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).end
+            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).end,
+            CalendarEventFixtures.externalTypeCalendarEvent.getCalendarEventType()
         )
 
         when (result) {
@@ -259,6 +262,7 @@ class GoogleCalendarApiFacadeTest {
                 CalendarEventFixtures.focusTimeCalendarEvent1.description,
                 Instant.parse("2021-01-10T10:00:00.000Z"),
                 Instant.parse("2021-01-10T11:00:00.000Z"),
+                CalendarEventFixtures.focusTimeCalendarEvent1.getCalendarEventType()
             )
 
             when (result) {
@@ -298,6 +302,7 @@ class GoogleCalendarApiFacadeTest {
                     CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Instant.parse("2021-01-10T10:00:00.000Z"),
                     Instant.parse("2021-01-10T11:00:00.000Z"),
+                    CalendarEventFixtures.focusTimeCalendarEvent1.getCalendarEventType()
                 )
 
                 when (result) {
@@ -356,7 +361,8 @@ class GoogleCalendarApiFacadeTest {
                     CalendarEventFixtures.focusTimeCalendarEvent1.title,
                     CalendarEventFixtures.focusTimeCalendarEvent1.description,
                     Instant.parse("2021-01-01T00:00:00.000Z"),
-                    Instant.parse("2021-01-01T01:00:00.000Z")
+                    Instant.parse("2021-01-01T01:00:00.000Z"),
+                    CalendarEventFixtures.focusTimeCalendarEvent1.getCalendarEventType()
                 )
 
                 when (result) {
@@ -376,6 +382,9 @@ class GoogleCalendarApiFacadeTest {
                         assertThat(eventParameter.end.dateTime.toStringRfc3339()).isEqualTo("2021-01-01T01:00:00.000Z")
                         assertThat(eventParameter.attendees[0].email).isEqualTo(user.email)
                         assertThat(eventParameter.attendees[0].responseStatus).isEqualTo("accepted")
+                        assertThat(eventParameter.extendedProperties.shared).isEqualTo(
+                            mapOf(EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY to CalendarEventType.FOCUS_TIME.name)
+                        )
                     }
                 }
             }
@@ -386,11 +395,7 @@ class GoogleCalendarApiFacadeTest {
     fun `test updateClockPandaEvent - updating external event type`() {
         val result = googleCalendarApiFacade.updateClockPandaEvent(
             user,
-            CalendarEventFixtures.externalTypeCalendarEvent.id,
-            CalendarEventFixtures.externalTypeCalendarEvent.title,
-            CalendarEventFixtures.externalTypeCalendarEvent.description,
-            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).start,
-            CalendarEventFixtures.externalTypeCalendarEvent.getTimeSpan(TimeZone.UTC).end
+            CalendarEventFixtures.externalTypeCalendarEvent
         )
 
         when (result) {
@@ -414,11 +419,7 @@ class GoogleCalendarApiFacadeTest {
         ).use {
             val result = googleCalendarApiFacade.updateClockPandaEvent(
                 user,
-                CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                CalendarEventFixtures.focusTimeCalendarEvent1.title,
-                CalendarEventFixtures.focusTimeCalendarEvent1.description,
-                Clock.System.now(),
-                Clock.System.now()
+                CalendarEventFixtures.focusTimeCalendarEvent1
             )
 
             when (result) {
@@ -454,11 +455,7 @@ class GoogleCalendarApiFacadeTest {
             }.use {
                 val result = googleCalendarApiFacade.updateClockPandaEvent(
                     user,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
-                    Clock.System.now(),
-                    Clock.System.now()
+                    CalendarEventFixtures.focusTimeCalendarEvent1
                 )
 
                 when (result) {
@@ -477,7 +474,23 @@ class GoogleCalendarApiFacadeTest {
     @Test
     fun `test updateClockPandaEvent - happy path`() {
         val mockCalendarEvents = mock(Calendar.Events::class.java)
+        val mockCalendarEventsGet = mock(Calendar.Events.Get::class.java)
         val mockCalendarEventsUpdate = mock(Calendar.Events.Update::class.java)
+        val mockEventToUpdate = mock(Event::class.java)
+        `when`(mockEventToUpdate.id).thenReturn("event_id_1")
+        `when`(mockEventToUpdate.summary).thenReturn(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
+        `when`(mockEventToUpdate.description).thenReturn("description")
+        `when`(mockEventToUpdate.start).thenReturn(
+            EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-01T00:00:00.000Z"))
+        )
+        `when`(mockEventToUpdate.end).thenReturn(
+            EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-01T01:00:00.000Z"))
+        )
+        `when`(mockEventToUpdate.iCalUID).thenReturn("ical_uid_1")
+        `when`(mockEventToUpdate.recurringEventId).thenReturn("recurring_event_id_1")
+        `when`(mockEventToUpdate.organizer).thenReturn(
+            Event.Organizer().setEmail("organizer_email_1@email.com")
+        )
         mockConstruction(
             GoogleRefreshTokenRequest::class.java
         ) { mock, _ ->
@@ -494,56 +507,48 @@ class GoogleCalendarApiFacadeTest {
                 `when`(mockBuilder.setApplicationName(any())).thenReturn(mockBuilder)
                 `when`(mockBuilder.build()).thenReturn(mockCalendar)
                 `when`(mockCalendar.events()).thenReturn(mockCalendarEvents)
+                `when`(mockCalendar.events().get(any(), any())).thenReturn(mockCalendarEventsGet)
+                `when`(mockCalendarEventsGet.execute()).thenReturn(mockEventToUpdate)
                 `when`(mockCalendarEvents.update(any(), any(), any())).thenReturn(mockCalendarEventsUpdate)
-                val mockEvent1 = mock(Event::class.java)
-                `when`(mockEvent1.id).thenReturn("event_id_1")
-                `when`(mockEvent1.summary).thenReturn(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)
-                `when`(mockEvent1.description).thenReturn("description")
-                `when`(mockEvent1.start).thenReturn(
-                    EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-01T00:00:00.000Z"))
-                )
-                `when`(mockEvent1.end).thenReturn(
-                    EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-01T01:00:00.000Z"))
-                )
-                `when`(mockEvent1.iCalUID).thenReturn("ical_uid_1")
-                `when`(mockEvent1.recurringEventId).thenReturn("recurring_event_id_1")
-                `when`(mockEvent1.organizer).thenReturn(
-                    Event.Organizer().setEmail("organizer_email_1@email.com")
-                )
-                `when`(mockCalendarEventsUpdate.execute()).thenReturn(mockEvent1)
+                `when`(mockCalendarEventsUpdate.execute()).thenReturn(mockEventToUpdate)
             }.use {
                 val result = googleCalendarApiFacade.updateClockPandaEvent(
                     user,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.id,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.title,
-                    CalendarEventFixtures.focusTimeCalendarEvent1.description,
-                    Instant.parse("2021-01-01T00:00:00Z"),
-                    Instant.parse("2021-01-01T03:00:00Z")
+                    CalendarEventFixtures.focusTimeCalendarEvent1.copy(
+                        description = "new description"
+                    )
                 )
 
                 when (result) {
                     is Either.Left -> fail("This should have returned right value", result.value)
 
                     is Either.Right -> {
-                        val expectedEventForUpdate = Event()
-                        expectedEventForUpdate.summary = "$CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE \uD83D\uDC3C"
-                        expectedEventForUpdate.description = "description"
-                        expectedEventForUpdate.start = EventDateTime().setDateTime(
-                            DateTime.parseRfc3339("2021-01-01T00:00:00Z")
-                        )
-                        expectedEventForUpdate.end = EventDateTime().setDateTime(
-                            DateTime.parseRfc3339("2021-01-01T03:00:00Z")
-                        )
-                        expectedEventForUpdate.attendees = listOf(
-                            EventAttendee()
-                                .setEmail(user.email)
-                                .setResponseStatus("accepted")
-                        )
+                        verify(mockCalendarEventsGet).execute()
                         verify(mockCalendarEvents).update(
                             eq("primary"),
                             eq(CalendarEventFixtures.focusTimeCalendarEvent1.id),
-                            eq(expectedEventForUpdate)
+                            eq(mockEventToUpdate)
                         )
+                        verify(mockEventToUpdate).setSummary("$CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE \uD83D\uDC3C")
+                        verify(mockEventToUpdate).setDescription("new description")
+                        verify(mockEventToUpdate).setStart(
+                            EventDateTime().setDateTime(
+                                DateTime.parseRfc3339("2021-01-01T00:00:00Z")
+                            )
+                        )
+                        verify(mockEventToUpdate).setEnd(
+                            EventDateTime().setDateTime(
+                                DateTime.parseRfc3339("2021-01-01T03:00:00Z")
+                            )
+                        )
+                        verify(mockEventToUpdate).setAttendees(
+                            listOf(
+                                EventAttendee()
+                                    .setEmail(user.email)
+                                    .setResponseStatus("accepted")
+                            )
+                        )
+                        verify(mockEventToUpdate, never()).setExtendedProperties(any())
                         verify(mockCalendarEventsUpdate).execute()
                     }
                 }

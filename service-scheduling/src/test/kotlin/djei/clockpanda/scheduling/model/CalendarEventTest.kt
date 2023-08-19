@@ -5,6 +5,7 @@ import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventAttendee
 import com.google.api.services.calendar.model.EventDateTime
 import djei.clockpanda.model.CalendarProvider
+import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade.Companion.EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -36,6 +37,13 @@ class CalendarEventTest {
                             .setResponseStatus("accepted")
                     )
                 )
+                .setExtendedProperties(
+                    Event.ExtendedProperties().setShared(
+                        mutableMapOf(
+                            EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY to CalendarEventType.FOCUS_TIME.name
+                        )
+                    )
+                )
         )
         val dateTimeNullFields = CalendarEvent.fromGoogleCalendarEvent(
             Event()
@@ -49,6 +57,13 @@ class CalendarEventTest {
                 .setEnd(EventDateTime().setDateTime(DateTime.parseRfc3339("2021-01-01T02:00:00Z")))
                 .setTransparency("opaque")
                 .setAttendees(null)
+                .setExtendedProperties(
+                    Event.ExtendedProperties().setPrivate(
+                        mutableMapOf(
+                            EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY to CalendarEventType.FOCUS_TIME.name
+                        )
+                    )
+                )
         )
         val localDateAllFields = CalendarEvent.fromGoogleCalendarEvent(
             Event()
@@ -92,6 +107,7 @@ class CalendarEventTest {
                 title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
                 description = "description",
                 calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                type = CalendarEventType.FOCUS_TIME,
                 iCalUid = "ical_uid",
                 isRecurring = true,
                 owner = "organizer_email",
@@ -113,6 +129,7 @@ class CalendarEventTest {
                 title = "",
                 description = "",
                 calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                type = null,
                 iCalUid = "ical_uid",
                 isRecurring = false,
                 owner = "unknown",
@@ -129,6 +146,7 @@ class CalendarEventTest {
                 title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
                 description = "description",
                 calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                type = null,
                 iCalUid = "ical_uid",
                 isRecurring = true,
                 owner = "organizer_email",
@@ -150,6 +168,7 @@ class CalendarEventTest {
                 title = "",
                 description = "",
                 calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                type = null,
                 iCalUid = "ical_uid",
                 isRecurring = false,
                 owner = "unknown",

@@ -3,6 +3,7 @@ package djei.clockpanda.scheduling.model
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventAttendee
 import djei.clockpanda.model.CalendarProvider
+import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade.Companion.EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -18,6 +19,7 @@ sealed interface CalendarEvent {
                     title = googleCalendarEvent.summary ?: "",
                     description = googleCalendarEvent.description ?: "",
                     calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                    type = CalendarEventType.fromExtendedProperties(googleCalendarEvent.extendedProperties),
                     iCalUid = googleCalendarEvent.iCalUID,
                     isRecurring = googleCalendarEvent.recurringEventId != null,
                     owner = googleCalendarEvent.organizer?.email ?: "unknown",
@@ -34,6 +36,7 @@ sealed interface CalendarEvent {
                     title = googleCalendarEvent.summary ?: "",
                     description = googleCalendarEvent.description ?: "",
                     calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+                    type = CalendarEventType.fromExtendedProperties(googleCalendarEvent.extendedProperties),
                     iCalUid = googleCalendarEvent.iCalUID,
                     isRecurring = googleCalendarEvent.recurringEventId != null,
                     owner = googleCalendarEvent.organizer?.email ?: "unknown",
@@ -60,14 +63,12 @@ sealed interface CalendarEvent {
 
     fun getTimeSpan(timeZone: TimeZone): TimeSpan
 
-    fun getType(): CalendarEventType {
-        return CalendarEventType.fromCalendarEventTitle(title)
-    }
-
     fun getDurationInMinutes(timeZone: TimeZone): Int {
         val timeSpan = getTimeSpan(timeZone)
         return (timeSpan.end - timeSpan.start).toInt(DurationUnit.MINUTES)
     }
+
+    fun getCalendarEventType(): CalendarEventType
 
     fun isUserAttending(userEmail: String): Boolean {
         return attendees.any { it.email == userEmail && it.attendanceStatus != CalendarEventAttendanceStatus.DECLINED }
@@ -85,13 +86,21 @@ data class InstantCalendarEvent(
     override val busy: Boolean,
     override val attendees: List<CalendarEventAttendee>,
     private val startTime: Instant,
-    private val endTime: Instant
+    private val endTime: Instant,
+    private val type: CalendarEventType?
 ) : CalendarEvent {
     override fun getTimeSpan(timeZone: TimeZone): TimeSpan {
         return TimeSpan(
             start = startTime,
             end = endTime
         )
+    }
+
+    // Rely both on native type and title to determine the type of the event for backward compatibility
+    // Can be removed in a future release version when all events have a native type
+    // which should just happen naturally as the optimizer regularly runs for all users
+    override fun getCalendarEventType(): CalendarEventType {
+        return type ?: CalendarEventType.fromCalendarEventTitle(title)
     }
 }
 
@@ -106,13 +115,21 @@ data class LocalDateCalendarEvent(
     override val busy: Boolean,
     override val attendees: List<CalendarEventAttendee>,
     private val startDate: LocalDate,
-    private val endDate: LocalDate
+    private val endDate: LocalDate,
+    private val type: CalendarEventType?
 ) : CalendarEvent {
     override fun getTimeSpan(timeZone: TimeZone): TimeSpan {
         return TimeSpan(
             start = startDate.atStartOfDayIn(timeZone),
             end = endDate.atStartOfDayIn(timeZone)
         )
+    }
+
+    // Rely both on native type and title to determine the type of the event for backward compatibility
+    // Can be removed in a future release version when all events have a native type
+    // which should just happen naturally as the optimizer regularly runs for all users
+    override fun getCalendarEventType(): CalendarEventType {
+        return type ?: CalendarEventType.fromCalendarEventTitle(title)
     }
 }
 
@@ -158,9 +175,19 @@ enum class CalendarEventType {
     companion object {
         fun fromCalendarEventTitle(title: String): CalendarEventType {
             if (title.contains(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE)) {
-                return CalendarEventType.FOCUS_TIME
+                return FOCUS_TIME
             }
-            return CalendarEventType.EXTERNAL_EVENT
+            return EXTERNAL_EVENT
+        }
+
+        fun fromExtendedProperties(extendedProperties: Event.ExtendedProperties?): CalendarEventType? {
+            if (extendedProperties?.shared == null) {
+                return null
+            }
+            return when (extendedProperties.shared[EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY]) {
+                FOCUS_TIME.name -> FOCUS_TIME
+                else -> null
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventAttendanceStatus
 import djei.clockpanda.scheduling.model.CalendarEventAttendee
+import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.InstantCalendarEvent
 import kotlinx.datetime.Instant
 
@@ -14,6 +15,7 @@ class CalendarEventFixtures {
             title = "external_type that does not match clock panda events",
             description = "description",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            type = CalendarEventType.EXTERNAL_EVENT,
             startTime = Instant.parse("2021-01-01T00:00:00Z"),
             endTime = Instant.parse("2021-01-01T01:00:00Z"),
             iCalUid = "unique_ical_uid_0",
@@ -33,6 +35,7 @@ class CalendarEventFixtures {
             title = "external_type that does not match clock panda events",
             description = "description",
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            type = null,
             startTime = Instant.parse("2021-01-01T00:00:00Z"),
             endTime = Instant.parse("2021-01-01T01:00:00Z"),
             iCalUid = "unique_ical_uid_1",
@@ -51,6 +54,7 @@ class CalendarEventFixtures {
             id = "id_2",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
+            type = CalendarEventType.FOCUS_TIME,
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
             startTime = Instant.parse("2021-01-01T00:00:00Z"),
             endTime = Instant.parse("2021-01-01T03:00:00Z"),
@@ -70,6 +74,7 @@ class CalendarEventFixtures {
             id = "id_3",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
+            type = null,
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
             startTime = Instant.parse("2021-01-02T00:00:00Z"),
             endTime = Instant.parse("2021-01-02T03:00:00Z"),
@@ -89,6 +94,7 @@ class CalendarEventFixtures {
             id = "id_3",
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             description = "description",
+            type = CalendarEventType.FOCUS_TIME,
             calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
             startTime = Instant.parse("2021-01-01T00:00:00Z"),
             endTime = Instant.parse("2021-01-01T03:00:00Z"),

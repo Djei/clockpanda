@@ -59,7 +59,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade, never()).deleteCalendarEvent(any(), any())
-        verify(googleCalendarApiFacade, never()).createClockPandaEvent(any(), any(), anyOrNull(), any(), any())
+        verify(googleCalendarApiFacade, never()).createClockPandaEvent(any(), any(), anyOrNull(), any(), any(), any())
     }
 
     @Test
@@ -92,10 +92,6 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 given(
                     googleCalendarApiFacade.updateClockPandaEvent(
                         any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
                         any()
                     )
                 ).willReturn {
@@ -107,21 +103,20 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
                     eq(UserFixtures.userWithPreferences),
-                    eq(EventFixtures.updatedExistingFocusTime.id),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.title),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.description),
-                    eq(EventFixtures.updatedExistingFocusTime.getStartTime()),
-                    eq(EventFixtures.updatedExistingFocusTime.getEndTime()),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade, never()).updateClockPandaEvent(
                     eq(UserFixtures.userWithPreferences),
-                    eq(EventFixtures.noChangeExistingFocusTime.id),
+                    eq(EventFixtures.noChangeExistingFocusTime.originalCalendarEvent!!)
+                )
+                verify(googleCalendarApiFacade, never()).createClockPandaEvent(
                     any(),
+                    any(),
+                    anyOrNull(),
                     any(),
                     any(),
                     any()
                 )
-                verify(googleCalendarApiFacade, never()).createClockPandaEvent(any(), any(), anyOrNull(), any(), any())
             }
         }
     }
@@ -165,7 +160,14 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         id == EventFixtures.existingFocusTimeToBeDeleted.id
                     }
                 )
-                verify(googleCalendarApiFacade, never()).createClockPandaEvent(any(), any(), anyOrNull(), any(), any())
+                verify(googleCalendarApiFacade, never()).createClockPandaEvent(
+                    any(),
+                    any(),
+                    anyOrNull(),
+                    any(),
+                    any(),
+                    any()
+                )
             }
         }
     }
@@ -197,7 +199,16 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         CalendarEventFixtures.externalTypeCalendarEvent
                     ).right()
                 )
-                given(googleCalendarApiFacade.createClockPandaEvent(any(), any(), anyOrNull(), any(), any())).willReturn {
+                given(
+                    googleCalendarApiFacade.createClockPandaEvent(
+                        any(),
+                        any(),
+                        anyOrNull(),
+                        any(),
+                        any(),
+                        any()
+                    )
+                ).willReturn {
                     GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(RuntimeException("some error"))
                         .left()
                 }
@@ -208,6 +219,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     any(),
                     eq(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE),
                     anyOrNull(),
+                    any(),
                     any(),
                     any()
                 )
@@ -250,16 +262,12 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 given(
                     googleCalendarApiFacade.updateClockPandaEvent(
                         any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
                         any()
                     )
                 ).willReturn {
                     CalendarEventFixtures.focusTimeCalendarEvent1.right()
                 }
-                given(googleCalendarApiFacade.createClockPandaEvent(any(), any(), anyOrNull(), any(), any()))
+                given(googleCalendarApiFacade.createClockPandaEvent(any(), any(), anyOrNull(), any(), any(), any()))
                     .willReturn {
                         CalendarEventFixtures.focusTimeCalendarEvent1.right()
                     }
@@ -268,11 +276,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
                     eq(UserFixtures.userWithPreferences),
-                    eq(EventFixtures.updatedExistingFocusTime.id),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.title),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!.description),
-                    eq(EventFixtures.updatedExistingFocusTime.getStartTime()),
-                    eq(EventFixtures.updatedExistingFocusTime.getEndTime()),
+                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
                     eq(UserFixtures.userWithPreferences),
@@ -284,6 +288,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     any(),
                     eq(CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE),
                     anyOrNull(),
+                    any(),
                     any(),
                     any()
                 )

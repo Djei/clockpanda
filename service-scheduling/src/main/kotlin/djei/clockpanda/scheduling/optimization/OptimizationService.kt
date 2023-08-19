@@ -153,7 +153,8 @@ class OptimizationService(
                 title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
                 description = null,
                 startTime = it.getStartTime(),
-                endTime = it.getEndTime()
+                endTime = it.getEndTime(),
+                calendarEventType = CalendarEventType.FOCUS_TIME
             ).getOrElse {
                 return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
             }
@@ -181,11 +182,7 @@ class OptimizationService(
                     logger.info("Updating focus time event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
                     googleCalendarApiFacade.updateClockPandaEvent(
                         user,
-                        it.originalCalendarEvent.id,
-                        it.originalCalendarEvent.title,
-                        it.originalCalendarEvent.description,
-                        it.getStartTime(),
-                        it.getEndTime()
+                        it.originalCalendarEvent
                     ).getOrElse {
                         return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
                     }

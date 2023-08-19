@@ -35,7 +35,7 @@ class Event(
                 id = calendarEvent.id,
                 startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
                 durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
-                type = calendarEvent.getType(),
+                type = calendarEvent.getCalendarEventType(),
                 originalCalendarEvent = calendarEvent,
                 owner = calendarEvent.owner
             )
