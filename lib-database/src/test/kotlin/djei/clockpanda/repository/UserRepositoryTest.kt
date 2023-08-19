@@ -65,16 +65,16 @@ class UserRepositoryTest {
     @Test
     fun `test list should return all users`() {
         val result = transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
-            userRepository.create(ctx, UserFixtures.userWithPreferences)
+            userRepository.create(ctx, UserFixtures.djei1NoPreferences)
+            userRepository.create(ctx, UserFixtures.djei2WithPreferences)
 
             userRepository.list(ctx)
         }
 
         assertThat(result).isEqualTo(
             listOf(
-                UserFixtures.userWithNoPreferences,
-                UserFixtures.userWithPreferences
+                UserFixtures.djei1NoPreferences,
+                UserFixtures.djei2WithPreferences
             ).right()
         )
     }

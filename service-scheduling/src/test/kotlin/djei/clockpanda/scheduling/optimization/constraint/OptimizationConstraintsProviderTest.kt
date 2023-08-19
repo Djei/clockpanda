@@ -31,7 +31,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T02:00:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         val focusTime2 = Event(
             id = "focus-time-2",
@@ -41,7 +41,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T03:45:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         // External event 1 partially overlaps with focus time
         val externalEvent1 = Event(
@@ -52,7 +52,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T05:00:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         // External event 2 does not overlap with focus time but with external event 1 (which should not be penalized)
         val externalEvent2 = Event(
@@ -63,7 +63,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T06:45:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         // External event 3 is completely contained within focus time
         val externalEvent3 = Event(
@@ -74,7 +74,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 4, // End time: 2021-01-01T03:00:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         // External event 4 completely contains focus time
         val externalEvent4 = Event(
@@ -85,7 +85,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 24, // End time: 2021-01-01T07:30:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
 
         val solution = OptimizationProblem(
@@ -102,7 +102,7 @@ class OptimizationConstraintsProviderTest {
                 externalEvent3,
                 externalEvent4
             ),
-            users = listOf(UserFixtures.userWithPreferences)
+            users = listOf(UserFixtures.djei2WithPreferences)
         )
 
         // Following overlaps are penalized:
@@ -126,7 +126,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         val focusTimeInsideWorkingHours = Event(
             id = "2",
@@ -136,7 +136,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
 
         val solution = OptimizationProblem(
@@ -146,7 +146,7 @@ class OptimizationConstraintsProviderTest {
                 weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(focusTimeOutsideWorkingHours, focusTimeInsideWorkingHours),
-            users = listOf(UserFixtures.userWithPreferences)
+            users = listOf(UserFixtures.djei2WithPreferences)
         )
 
         // Focus time 1 is outside of working hours and penalized for 60 minutes
@@ -161,7 +161,7 @@ class OptimizationConstraintsProviderTest {
         val userPreferenceWithEuropeLondonPreferredTimezone = UserFixtures.userPreferences.copy(
             preferredTimeZone = TimeZone.of("Europe/London")
         )
-        val user = UserFixtures.userWithPreferences.copy(
+        val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferenceWithEuropeLondonPreferredTimezone
         )
         val focusTimeWithStartAndEndDateNotSameDay = Event(
@@ -220,7 +220,7 @@ class OptimizationConstraintsProviderTest {
         val userPreferences = UserFixtures.userPreferences.copy(
             targetFocusTimeHoursPerWeek = 20
         )
-        val user = UserFixtures.userWithPreferences.copy(
+        val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
         val threeHoursOfFocusTime = Event(
@@ -261,7 +261,7 @@ class OptimizationConstraintsProviderTest {
                 weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(threeHoursOfFocusTime, fourHoursOfFocusTime, externalEvent1),
-            users = listOf(UserFixtures.userWithPreferences)
+            users = listOf(UserFixtures.djei2WithPreferences)
         )
 
         // User preference wants 20 hours of focus time per week
@@ -288,7 +288,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 12,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent1,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         val existingFocusTimeThatHasMoved = Event(
             id = "2",
@@ -298,7 +298,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent2,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         val externalEvent1 = Event(
             id = "3",
@@ -308,7 +308,7 @@ class OptimizationConstraintsProviderTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
 
         val solution = OptimizationProblem(
@@ -318,7 +318,7 @@ class OptimizationConstraintsProviderTest {
                 weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
             schedule = listOf(existingFocusTimeThatHasNotMoved, existingFocusTimeThatHasMoved, externalEvent1),
-            users = listOf(UserFixtures.userWithPreferences)
+            users = listOf(UserFixtures.djei2WithPreferences)
         )
 
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime)
@@ -333,7 +333,7 @@ class OptimizationConstraintsProviderTest {
             preferredTimeZone = TimeZone.of("Europe/London"),
             preferredFocusTimeRange = LocalTimeSpan(LocalTime(14, 0), LocalTime(17, 0))
         )
-        val user = UserFixtures.userWithPreferences.copy(
+        val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
         val focusTimeOutsidePreferredRange = Event(
@@ -391,7 +391,7 @@ class OptimizationConstraintsProviderTest {
         val userPreferences = UserFixtures.userPreferences.copy(
             preferredTimeZone = TimeZone.of("Europe/London")
         )
-        val user = UserFixtures.userWithPreferences.copy(
+        val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
         val onTheHour = Event(

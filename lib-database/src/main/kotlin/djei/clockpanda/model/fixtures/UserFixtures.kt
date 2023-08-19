@@ -43,7 +43,7 @@ class UserFixtures {
             preferredFocusTimeRange = LocalTimeSpan(LocalTime(14, 0), LocalTime(17, 0))
         )
 
-        val userWithNoPreferences = User(
+        val djei1NoPreferences = User(
             email = "djei1@email.com",
             firstName = "Djei 1 First Name",
             lastName = "Djei 1 Last Name",
@@ -55,7 +55,7 @@ class UserFixtures {
             lastUpdatedAt = Clock.System.now()
         )
 
-        val userWithPreferences = User(
+        val djei2WithPreferences = User(
             email = "djei2@email.com",
             firstName = "Djei 2 First Name",
             lastName = "Djei 2 Last Name",

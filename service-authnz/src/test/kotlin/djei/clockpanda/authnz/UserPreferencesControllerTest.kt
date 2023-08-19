@@ -78,7 +78,7 @@ class UserPreferencesControllerTest {
                     .filterKeys { it != DayOfWeek.SATURDAY && it != DayOfWeek.SUNDAY }
             )
         val putUserPreferencesRequest = UserPreferencesController.PutUserPreferencesRequest(
-            email = UserFixtures.userWithNoPreferences.email,
+            email = UserFixtures.djei1NoPreferences.email,
             preferences = preferencesWithWorkingHoursMissingSaturdayAndSunday
         )
 
@@ -87,7 +87,7 @@ class UserPreferencesControllerTest {
                 .with(csrf().asHeader())
                 .with(
                     SecurityMockMvcRequestPostProcessors.oidcLogin().idToken {
-                        it.claim("email", UserFixtures.userWithNoPreferences.email)
+                        it.claim("email", UserFixtures.djei1NoPreferences.email)
                     }
                 )
                 .contentType(MediaType.APPLICATION_JSON)
@@ -111,11 +111,11 @@ class UserPreferencesControllerTest {
     @Test
     fun `test putUserPreferences - happy path`() {
         val putUserPreferencesRequest = UserPreferencesController.PutUserPreferencesRequest(
-            email = UserFixtures.userWithNoPreferences.email,
+            email = UserFixtures.djei1NoPreferences.email,
             preferences = UserFixtures.userPreferences
         )
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+            userRepository.create(ctx, UserFixtures.djei1NoPreferences)
         }
 
         val result = mockMvc.perform(
@@ -123,7 +123,7 @@ class UserPreferencesControllerTest {
                 .with(csrf().asHeader())
                 .with(
                     SecurityMockMvcRequestPostProcessors.oidcLogin().idToken {
-                        it.claim("email", UserFixtures.userWithNoPreferences.email)
+                        it.claim("email", UserFixtures.djei1NoPreferences.email)
                     }
                 )
                 .contentType(MediaType.APPLICATION_JSON)
@@ -138,11 +138,11 @@ class UserPreferencesControllerTest {
             .isInstanceOf(UserPreferencesController.PutUserPreferencesResponse.PutUserPreferencesSuccessResponse::class.java)
         val successResponseContent =
             responseContent as UserPreferencesController.PutUserPreferencesResponse.PutUserPreferencesSuccessResponse
-        assertThat(successResponseContent.email).isEqualTo(UserFixtures.userWithNoPreferences.email)
+        assertThat(successResponseContent.email).isEqualTo(UserFixtures.djei1NoPreferences.email)
         val fetchAfterPutPreferencesUser = transactionManager.transaction { ctx ->
             userRepository.fetchByEmail(
                 ctx,
-                UserFixtures.userWithNoPreferences.email
+                UserFixtures.djei1NoPreferences.email
             )
         }
         when (fetchAfterPutPreferencesUser) {

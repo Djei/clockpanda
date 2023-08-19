@@ -30,7 +30,7 @@ class UserPreferencesController(
         @AuthenticationPrincipal principal: OAuth2User,
         @RequestBody request: PutUserPreferencesRequest
     ): ResponseEntity<out PutUserPreferencesResponse> {
-        return when (val requestValidationResult = validateRequest(principal, request)) {
+        return when (val requestValidationResult = validatePutUserPreferencesRequest(principal, request)) {
             is Either.Left -> {
                 requestValidationResult.value
             }
@@ -69,7 +69,7 @@ class UserPreferencesController(
         }
     }
 
-    private fun validateRequest(
+    private fun validatePutUserPreferencesRequest(
         principal: OAuth2User,
         request: PutUserPreferencesRequest
     ): Either<ResponseEntity<PutUserPreferencesResponse.PutUserPreferencesFailResponse>, Unit> {

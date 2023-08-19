@@ -16,7 +16,7 @@ import java.sql.DriverManager
 class GoogleCalendarApiPlayground {
 
     private val userRepository = UserRepository()
-    private val dsl = DSL.using(DriverManager.getConnection("jdbc:sqlite:file:../db.sqlite3"), SQLDialect.SQLITE)
+    private val dsl = DSL.using(DriverManager.getConnection("jdbc:sqlite:file:../db.sqlite3?foreign_keys=on"), SQLDialect.SQLITE)
     private val transactionManager = TransactionManager(dsl)
     private val user = transactionManager.transaction { ctx ->
         userRepository.fetchByEmail(

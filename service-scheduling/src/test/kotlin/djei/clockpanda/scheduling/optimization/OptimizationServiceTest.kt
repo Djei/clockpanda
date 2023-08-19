@@ -29,7 +29,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
     @Test
     fun `test optimizeSchedule returns left if user has no preferences`() {
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+            userRepository.create(ctx, UserFixtures.djei1NoPreferences)
         }
 
         when (val result = optimizationService.calculateOptimizedSchedule()) {
@@ -37,7 +37,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
                 val error = result.value
                 assertThat(error).isInstanceOf(OptimizationServiceError.UserHasNoPreferencesError::class.java)
                 val userHasNoPreferencesError = error as OptimizationServiceError.UserHasNoPreferencesError
-                assertThat(userHasNoPreferencesError.primaryUser).isEqualTo(UserFixtures.userWithNoPreferences)
+                assertThat(userHasNoPreferencesError.primaryUser).isEqualTo(UserFixtures.djei1NoPreferences)
                 assertThat(userHasNoPreferencesError.message).isEqualTo("user djei1@email.com has no preferences")
             }
 
@@ -48,7 +48,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
     @Test
     fun `test optimizeSchedule returns left if google api failure`() {
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithPreferences)
+            userRepository.create(ctx, UserFixtures.djei2WithPreferences)
         }
         given(
             googleCalendarApiFacade.listCalendarEvents(
@@ -74,7 +74,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
     @Test
     fun `test optimizeSchedule - happy path`() {
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithPreferences)
+            userRepository.create(ctx, UserFixtures.djei2WithPreferences)
         }
         given(
             googleCalendarApiFacade.listCalendarEvents(
@@ -94,7 +94,7 @@ class OptimizationServiceTest : SchedulingSpringBootTest() {
             is Either.Right -> {
                 assertThat(result.value).hasSize(1)
                 val solvedOptimizationProblem = result.value[0]
-                assertThat(solvedOptimizationProblem.user).isEqualTo(UserFixtures.userWithPreferences)
+                assertThat(solvedOptimizationProblem.user).isEqualTo(UserFixtures.djei2WithPreferences)
                 assertThat(solvedOptimizationProblem.focusTimes).hasSize(28)
             }
         }

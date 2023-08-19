@@ -24,27 +24,27 @@ class TransactionManagerTest {
     fun `test transaction rollback when block returns Either Left`() {
         // No transaction rollback because Either.right is returned
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithPreferences)
+            userRepository.create(ctx, UserFixtures.djei2WithPreferences)
             return@transaction Unit.right()
         }
         val rightEitherRetrieveAfterCreate = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, UserFixtures.userWithPreferences.email)
+            userRepository.fetchByEmail(ctx, UserFixtures.djei2WithPreferences.email)
         }
         when (rightEitherRetrieveAfterCreate) {
             is Either.Left -> fail("This should return right value", rightEitherRetrieveAfterCreate.value)
             is Either.Right -> {
                 assertThat(rightEitherRetrieveAfterCreate.value).isNotNull
-                assertThat(rightEitherRetrieveAfterCreate.value!!.email).isEqualTo(UserFixtures.userWithPreferences.email)
+                assertThat(rightEitherRetrieveAfterCreate.value!!.email).isEqualTo(UserFixtures.djei2WithPreferences.email)
             }
         }
 
         // Transaction is rolled back and we cannot find the user because Either.left is returned
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithNoPreferences)
+            userRepository.create(ctx, UserFixtures.djei1NoPreferences)
             return@transaction "Error".left()
         }
         val leftEitherRetrieveAfterCreate = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, UserFixtures.userWithNoPreferences.email)
+            userRepository.fetchByEmail(ctx, UserFixtures.djei1NoPreferences.email)
         }
         when (leftEitherRetrieveAfterCreate) {
             is Either.Left -> fail("This should return right value", leftEitherRetrieveAfterCreate.value)

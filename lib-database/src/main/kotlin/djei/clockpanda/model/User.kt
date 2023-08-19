@@ -63,6 +63,7 @@ sealed interface UserPreferences {
     companion object {
         private val json = Json {
             classDiscriminator = "version_num"
+            ignoreUnknownKeys = true
         }
 
         private fun fromJson(value: String) = json.decodeFromString<UserPreferences>(value)

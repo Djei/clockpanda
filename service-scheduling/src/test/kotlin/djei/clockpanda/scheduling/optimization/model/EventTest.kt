@@ -20,7 +20,7 @@ class EventTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
 
         // not overlapping before
@@ -32,7 +32,7 @@ class EventTest {
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(notOverlappingBefore)).isEqualTo(0)
 
@@ -45,7 +45,7 @@ class EventTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(partiallyOverlappingBefore)).isEqualTo(60)
 
@@ -58,7 +58,7 @@ class EventTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(partiallyOverlappingAfter)).isEqualTo(60)
 
@@ -71,7 +71,7 @@ class EventTest {
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(notOverlappingAfter)).isEqualTo(0)
 
@@ -84,7 +84,7 @@ class EventTest {
             ),
             durationInTimeGrains = 16,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(fullyContainsReference)).isEqualTo(120)
 
@@ -97,7 +97,7 @@ class EventTest {
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
         assertThat(referenceEvent.computeOverlapInMinutes(fullyContainedByReference)).isEqualTo(60)
     }
@@ -113,7 +113,7 @@ class EventTest {
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.userWithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email
         )
 
         // not overlapping before

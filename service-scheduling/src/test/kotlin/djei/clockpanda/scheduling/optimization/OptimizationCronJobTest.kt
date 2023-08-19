@@ -50,7 +50,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
     @Test
     fun `test run optimization cron job failure does not throw exception`() {
         transactionManager.transaction { ctx ->
-            userRepository.create(ctx, UserFixtures.userWithPreferences)
+            userRepository.create(ctx, UserFixtures.djei2WithPreferences)
         }
         given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
             GoogleCalendarApiFacadeError.GoogleCalendarApiListEventsError(RuntimeException("some error")).left()
@@ -77,11 +77,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         EventFixtures.updatedExistingFocusTime,
                         EventFixtures.externalEvent
                     ),
-                    users = listOf(UserFixtures.userWithPreferences)
+                    users = listOf(UserFixtures.djei2WithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
-                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                    userRepository.create(ctx, UserFixtures.djei2WithPreferences)
                 }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
@@ -102,11 +102,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 optimizationCronJob.optimizeSchedule()
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
-                    eq(UserFixtures.userWithPreferences),
+                    eq(UserFixtures.djei2WithPreferences),
                     eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade, never()).updateClockPandaEvent(
-                    eq(UserFixtures.userWithPreferences),
+                    eq(UserFixtures.djei2WithPreferences),
                     eq(EventFixtures.noChangeExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade, never()).createClockPandaEvent(
@@ -135,11 +135,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         EventFixtures.existingFocusTimeToBeDeleted,
                         EventFixtures.externalEvent
                     ),
-                    users = listOf(UserFixtures.userWithPreferences)
+                    users = listOf(UserFixtures.djei2WithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
-                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                    userRepository.create(ctx, UserFixtures.djei2WithPreferences)
                 }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
@@ -155,7 +155,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 optimizationCronJob.optimizeSchedule()
 
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
-                    eq(UserFixtures.userWithPreferences),
+                    eq(UserFixtures.djei2WithPreferences),
                     argThat {
                         id == EventFixtures.existingFocusTimeToBeDeleted.id
                     }
@@ -186,11 +186,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         EventFixtures.newFocusTimeToBeCreated,
                         EventFixtures.externalEvent
                     ),
-                    users = listOf(UserFixtures.userWithPreferences)
+                    users = listOf(UserFixtures.djei2WithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
-                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                    userRepository.create(ctx, UserFixtures.djei2WithPreferences)
                 }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
@@ -243,11 +243,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         EventFixtures.updatedExistingFocusTime,
                         EventFixtures.externalEvent
                     ),
-                    users = listOf(UserFixtures.userWithPreferences)
+                    users = listOf(UserFixtures.djei2WithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
-                    userRepository.create(ctx, UserFixtures.userWithPreferences)
+                    userRepository.create(ctx, UserFixtures.djei2WithPreferences)
                 }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
@@ -275,11 +275,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 optimizationCronJob.optimizeSchedule()
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
-                    eq(UserFixtures.userWithPreferences),
+                    eq(UserFixtures.djei2WithPreferences),
                     eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
-                    eq(UserFixtures.userWithPreferences),
+                    eq(UserFixtures.djei2WithPreferences),
                     argThat {
                         id == EventFixtures.existingFocusTimeToBeDeleted.id
                     }

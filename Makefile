@@ -1,4 +1,4 @@
-.PHONY: build bootRun bootRunDebug lint format
+.PHONY: build bootRun bootRunDebug lint format codegen
 
 # Any flags to pass into the build command
 GRADLEFLAGS =
@@ -24,3 +24,6 @@ lint:
 
 format:
 	$(GRADLE) ktlintFormat
+
+codegen:
+	$(GRADLE) flywayClean && $(GRADLE) flywayMigrate && $(GRADLE) generateJooq
