@@ -8,6 +8,7 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ## Features
 - [beta] Local personal usage
 - [planned] Self-hosting
+- [planned] Data encryption at rest
 - [beta] Automatically schedule and protect focus times when you do deep work without any interruptions
 - [in progress] Prioritized task list: let Clock Panda automatically schedule tasks from your task list
 - [planned] Analytics
@@ -29,8 +30,8 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ## Local personal usage
 Clock Panda was designed to be hosted on a server. However, you can also run it locally for personal usage with some limitations:
 - Clock Panda is configured to regularly optimize your schedule but will not be able to do so when your computer is off or asleep
-- We cannot provide any security recommendations for running Clock Panda locally. You are responsible for securing your own computer and network
 - While locally running Clock Panda is regularly tested, we do not explicitly design Clock Panda to work with minimal consumer grade hardware requirements
+- Please check the privacy / security section for details on what data is stored on the machine running Clock Panda. You are responsible for securing your machine and network.
 - Other potential limitations may be added as we continue to develop Clock Panda
 
 First follow the instructions in the "How to set up your Google calendar API credentials" section
@@ -43,6 +44,25 @@ git clone git@github.com:Djei/clockpanda.git
 ```
 ## Self-host
 This feature is not yet available. Only local personal usage is supported at this moment. 
+
+## Privacy / Security
+Clock Panda currently does not store any of your connected calendar data on the server. 
+All the data pulled from your calendar is processed in memory and discarded after the schedule optimization is complete.
+
+Clock Panda does store information about your user account and your schedule optimization preferences on the server.
+The data is stored in a local sqlite database and is not currently encrypted at rest. 
+When running locally or self-hosting, you are responsible for ensuring the security of your machine (encrypted disk, appropriate OS user permissions) and network.
+
+Data stored:
+
+| Data                                       | Usage by Clock Panda                                                                                            |
+|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| Basic profile information e.g. name, email | Used to identify you and display your name in the UI                                                            |
+| Google Calendar API refresh token          | Used by the recurring Clock Panda optimizer to pull the latest state of your calendar to optimize your schedule |
+| Schedule optimization preferences          | Used by the recurring Clock Panda optimizer to know how to optimize your schedule                               |
+
+Please note that this stance may change in the future, but we will always strive to minimize the amount of data stored on the running server.
+THis is further mitigated by the fact that Clock Panda will be designed to always be self-hostable, so you can control where your data is stored.
 
 ---
 # Contribution guidelines
