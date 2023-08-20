@@ -191,12 +191,14 @@
         var openSaveTaskModal = function(mode, task_id) {
             if (mode == 'add') {
                 $("#task_modal_title").html("Add Task");
+                $('#modal_one_off_task_id').val('');
+                $('#modal_one_off_created_at').val('');
                 $('#modal_task_name').val('');
-                $('#modal_one_off_duration_task_property').val('');
-                $('#modal_one_off_time_range_start_task_property').val('09:00');
-                $('#modal_one_off_time_range_end_task_property').val('17:00');
-                $('#modal_one_off_is_time_range_strict_task_property').prop('checked', false);
-                $('#modal_one_off_is_high_priority_task_property').prop('checked', false);
+                $('#modal_one_off_task_duration').val('');
+                $('#modal_one_off_task_time_range_start').val('09:00');
+                $('#modal_one_off_task_time_range_end').val('17:00');
+                $('#modal_one_off_task_is_time_range_strict').prop('checked', false);
+                $('#modal_one_off_task_is_high_priority').prop('checked', false);
             } else {
                 let task = global_tasks.find(task => task.id == task_id);
                 $("#task_modal_title").html("Edit Task");
