@@ -77,11 +77,11 @@ class UserPersonalTaskRepositoryTest {
             )
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
             )
         }.getOrElse { fail("This should not fail", it) }
 
@@ -92,7 +92,7 @@ class UserPersonalTaskRepositoryTest {
         Assertions.assertThat(result).hasSize(2)
         Assertions.assertThat(result.map(UserPersonalTask::id)).containsExactly(
             UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice.id,
-            UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.id
+            UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.id
         )
     }
 
@@ -140,43 +140,11 @@ class UserPersonalTaskRepositoryTest {
     }
 
     @Test
-    fun `test upsertPersonalTask inserts weekly personal task if entry does not exist`() {
-        val result = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
-                ctx,
-                UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
-            )
-        }.getOrElse { fail("This should not fail", it) }
-
-        val retrieveAfterUpsert = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.getById(ctx, result.id)
-        }.getOrElse { fail("This should not fail", it) }
-        Assertions.assertThat(retrieveAfterUpsert).isNotNull
-        Assertions.assertThat(retrieveAfterUpsert!!.id)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.id)
-        Assertions.assertThat(retrieveAfterUpsert.userEmail)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.userEmail)
-        Assertions.assertThat(retrieveAfterUpsert.title)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.title)
-        Assertions.assertThat(retrieveAfterUpsert.description)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.description)
-        Assertions.assertThat(retrieveAfterUpsert.metadata).isInstanceOf(
-            UserPersonalTaskMetadata.WeeklySpreadTask::class.java
-        )
-        Assertions.assertThat(retrieveAfterUpsert.metadata)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.metadata)
-        // The upserted item created_at should be greater than the fixture because upserts should override the created_at to the current time
-        Assertions.assertThat(retrieveAfterUpsert.createdAt)
-            .isGreaterThan(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.createdAt)
-        Assertions.assertThat(retrieveAfterUpsert.lastUpdatedAt).isNull()
-    }
-
-    @Test
     fun `test upsertPersonalTask updates if entry does not exist`() {
         val initialInsert = transactionManager.transaction { ctx ->
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
         }.getOrElse { fail("This should not fail", it) }
 
@@ -195,18 +163,18 @@ class UserPersonalTaskRepositoryTest {
         }.getOrElse { fail("This should not fail", it) }
         Assertions.assertThat(retrieveAfterUpsert).isNotNull
         Assertions.assertThat(retrieveAfterUpsert!!.id)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.id)
+            .isEqualTo(UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.id)
         Assertions.assertThat(retrieveAfterUpsert.userEmail)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.userEmail)
+            .isEqualTo(UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.userEmail)
         Assertions.assertThat(retrieveAfterUpsert.title)
             .isEqualTo("new title")
         Assertions.assertThat(retrieveAfterUpsert.description)
             .isEqualTo("new description")
         Assertions.assertThat(retrieveAfterUpsert.metadata).isInstanceOf(
-            UserPersonalTaskMetadata.WeeklySpreadTask::class.java
+            UserPersonalTaskMetadata.OneOffTask::class.java
         )
         Assertions.assertThat(retrieveAfterUpsert.metadata)
-            .isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.metadata)
+            .isEqualTo(UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.metadata)
         // The upserted item created_at should be the same as initial inserted item since second upsert should not change the created_at
         Assertions.assertThat(retrieveAfterUpsert.createdAt)
             .isEqualTo(initialInsert.createdAt)
@@ -221,7 +189,7 @@ class UserPersonalTaskRepositoryTest {
 
         val result = userPersonalTaskRepository.upsertPersonalTask(
             mockCtx,
-            UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+            UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
         )
 
         Assertions.assertThat(result).isEqualTo(UserPersonalTaskRepositoryError.DatabaseError(exception).left())
@@ -244,7 +212,7 @@ class UserPersonalTaskRepositoryTest {
         val initialInsert = transactionManager.transaction { ctx ->
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
         }.getOrElse { fail("This should not fail", it) }
 

@@ -54,7 +54,7 @@ class UserPersonalTaskControllerTest {
             either {
                 listOf(
                     UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice,
-                    UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+                    UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
                 ).map {
                     userPersonalTaskRepository.upsertPersonalTask(
                         ctx,
@@ -101,12 +101,12 @@ class UserPersonalTaskControllerTest {
     @Test
     fun `test putPersonalTask fails if putting personal tasks for another user`() {
         val putUserPersonalTasksRequest = UserPersonalTaskController.PutUserPersonalTaskRequest(
-            email = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.userEmail,
-            title = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.title,
-            description = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.description,
-            metadata = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.metadata,
-            createdAt = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.createdAt,
-            lastUpdatedAt = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.lastUpdatedAt
+            email = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.userEmail,
+            title = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.title,
+            description = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.description,
+            metadata = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.metadata,
+            createdAt = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.createdAt,
+            lastUpdatedAt = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.lastUpdatedAt
         )
 
         val result = mockMvc.perform(
@@ -160,7 +160,7 @@ class UserPersonalTaskControllerTest {
             userRepository.create(ctx, UserFixtures.djei1NoPreferences)
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
         }
         val putUserPersonalTasksRequest = UserPersonalTaskController.PutUserPersonalTaskRequest(
@@ -204,7 +204,7 @@ class UserPersonalTaskControllerTest {
         Assertions.assertThat(listAfterPutRequest).hasSize(2)
         Assertions.assertThat(listAfterPutRequest.map { it.id }).contains(
             successResponse.userPersonalTask.id,
-            UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask.id
+            UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.id
         )
     }
 
@@ -249,11 +249,11 @@ class UserPersonalTaskControllerTest {
             userRepository.create(ctx, UserFixtures.djei2WithPreferences)
             userPersonalTaskRepository.upsertPersonalTask(
                 ctx,
-                UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask
+                UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
             )
         }
         val deleteUserPersonalTasksRequest = UserPersonalTaskController.DeleteUserPersonalTaskRequest(
-            id = UserPersonalTaskFixtures.djei2WeeklySpreadFocusTimeUserPersonalTask.id,
+            id = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.id,
         )
 
         val result = mockMvc.perform(

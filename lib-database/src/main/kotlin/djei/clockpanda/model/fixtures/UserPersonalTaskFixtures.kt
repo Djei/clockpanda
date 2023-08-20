@@ -16,6 +16,21 @@ class UserPersonalTaskFixtures {
             description = "description",
             metadata = UserPersonalTaskMetadata.OneOffTask(
                 oneOffTaskDurationInMinutes = 60,
+                timeRange = LocalTimeSpan(LocalTime(9, 0), LocalTime(12, 0)),
+                isHighPriority = true,
+                isTimeRangeStrict = true
+            ),
+            createdAt = Clock.System.now(),
+            lastUpdatedAt = null
+        )
+
+        val djei1OneOffDoExpensesUserPersonalTask = UserPersonalTask(
+            id = UUID.randomUUID(),
+            userEmail = "djei1@email.com",
+            title = "do expense",
+            description = "description",
+            metadata = UserPersonalTaskMetadata.OneOffTask(
+                oneOffTaskDurationInMinutes = 60,
                 timeRange = LocalTimeSpan(LocalTime(9, 0), LocalTime(17, 0)),
                 isHighPriority = true,
                 isTimeRangeStrict = false
@@ -24,32 +39,15 @@ class UserPersonalTaskFixtures {
             lastUpdatedAt = null
         )
 
-        val djei1WeeklySpreadFocusTimeUserPersonalTask = UserPersonalTask(
-            id = UUID.randomUUID(),
-            userEmail = "djei1@email.com",
-            title = "Focus Time",
-            description = "description",
-            metadata = UserPersonalTaskMetadata.WeeklySpreadTask(
-                weeklyTargetAmountInMinutes = 15 * 60,
-                minInstanceDurationInMinutes = 60 * 2,
-                maxInstanceDurationInMinutes = 60 * 8,
-                timeRange = LocalTimeSpan(LocalTime(15, 0), LocalTime(19, 0)),
-                isTimeRangeStrict = false
-            ),
-            createdAt = Clock.System.now(),
-            lastUpdatedAt = null
-        )
-
-        val djei2WeeklySpreadFocusTimeUserPersonalTask = UserPersonalTask(
+        val djei2OneOffReadPaperUserPersonalTask = UserPersonalTask(
             id = UUID.randomUUID(),
             userEmail = "djei2@email.com",
-            title = "Focus Time",
+            title = "read paper",
             description = "description",
-            metadata = UserPersonalTaskMetadata.WeeklySpreadTask(
-                weeklyTargetAmountInMinutes = 5 * 60,
-                minInstanceDurationInMinutes = 60 * 2,
-                maxInstanceDurationInMinutes = 60 * 8,
-                timeRange = LocalTimeSpan(LocalTime(15, 0), LocalTime(19, 0)),
+            metadata = UserPersonalTaskMetadata.OneOffTask(
+                oneOffTaskDurationInMinutes = 60,
+                timeRange = LocalTimeSpan(LocalTime(12, 0), LocalTime(17, 0)),
+                isHighPriority = false,
                 isTimeRangeStrict = false
             ),
             createdAt = Clock.System.now(),

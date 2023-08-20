@@ -80,16 +80,4 @@ sealed interface UserPersonalTaskMetadata {
         val isHighPriority: Boolean,
         val currentScheduledAt: Instant? = null
     ) : UserPersonalTaskMetadata
-
-    // Weekly task that can be spread out throughout the week in multiple instances
-    // as long as we meet the weekly target and each instance respects the configured min/max duration
-    @Serializable
-    @SerialName("WeeklySpread")
-    data class WeeklySpreadTask(
-        val weeklyTargetAmountInMinutes: Int,
-        val minInstanceDurationInMinutes: Int,
-        val maxInstanceDurationInMinutes: Int,
-        val timeRange: LocalTimeSpan,
-        val isTimeRangeStrict: Boolean
-    ) : UserPersonalTaskMetadata
 }

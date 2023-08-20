@@ -14,14 +14,4 @@ class UserPersonalTaskTest {
 
         assertThat(deserialized).isEqualTo(UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice)
     }
-
-    @Test
-    fun `test serialization deserialization - weekly spread`() {
-        val serialized = Json.Default.encodeToString(
-            UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask
-        )
-        val deserialized = Json.Default.decodeFromString<UserPersonalTask>(serialized)
-
-        assertThat(deserialized).isEqualTo(UserPersonalTaskFixtures.djei1WeeklySpreadFocusTimeUserPersonalTask)
-    }
 }
