@@ -27,7 +27,8 @@ class CalendarEventFixtures {
                     email = "djei1@email.com",
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
-            )
+            ),
+            personalTaskId = null
         )
 
         val externalTypeCalendarEvent = InstantCalendarEvent(
@@ -47,7 +48,8 @@ class CalendarEventFixtures {
                     email = "djei1@email.com",
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
-            )
+            ),
+            personalTaskId = null
         )
 
         val focusTimeCalendarEvent1 = InstantCalendarEvent(
@@ -67,7 +69,8 @@ class CalendarEventFixtures {
                     email = "djei1@email.com",
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
-            )
+            ),
+            personalTaskId = null
         )
 
         val focusTimeCalendarEvent2 = InstantCalendarEvent(
@@ -87,7 +90,8 @@ class CalendarEventFixtures {
                     email = "djei1@email.com",
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
-            )
+            ),
+            personalTaskId = null
         )
 
         val focusTimeCalendarEvent3 = InstantCalendarEvent(
@@ -107,7 +111,50 @@ class CalendarEventFixtures {
                     email = "djei1@email.com",
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
-            )
+            ),
+            personalTaskId = null
+        )
+
+        val personalTaskCalendarEvent1 = InstantCalendarEvent(
+            id = "id_4",
+            title = "personal task 1",
+            description = "description",
+            type = CalendarEventType.PERSONAL_TASK,
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            startTime = Instant.parse("2021-01-01T00:00:00Z"),
+            endTime = Instant.parse("2021-01-01T03:00:00Z"),
+            iCalUid = "unique_ical_uid_4",
+            isRecurring = false,
+            owner = "djei1@email.com",
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            ),
+            personalTaskId = "f5dacfce-7439-4269-9367-59404de69b20"
+        )
+
+        val personalTaskCalendarEvent2 = InstantCalendarEvent(
+            id = "id_5",
+            title = "personal task 2",
+            description = "description",
+            type = CalendarEventType.PERSONAL_TASK,
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            startTime = Instant.parse("2021-01-05T00:00:00Z"),
+            endTime = Instant.parse("2021-01-05T03:00:00Z"),
+            iCalUid = "unique_ical_uid_5",
+            isRecurring = false,
+            owner = "djei1@email.com",
+            busy = true,
+            attendees = listOf(
+                CalendarEventAttendee(
+                    email = "djei1@email.com",
+                    attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
+                )
+            ),
+            personalTaskId = "4b12d7c8-e2bc-4555-95fc-7f0b0ca320dd"
         )
     }
 }

@@ -10,13 +10,16 @@ import ai.timefold.solver.core.impl.solver.DefaultSolverFactory
 import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.model.fixtures.UserFixtures
+import djei.clockpanda.model.fixtures.UserPersonalTaskFixtures
+import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.SchedulingSpringBootTest
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacadeError
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import djei.clockpanda.scheduling.optimization.OptimizationService.Companion.OPTIMIZATION_RANGE_IN_WEEKS
-import djei.clockpanda.scheduling.optimization.fixtures.EventFixtures
+import djei.clockpanda.scheduling.optimization.fixtures.OptimizerEventFixtures
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
 import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.DayOfWeek
@@ -45,6 +48,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
     lateinit var userRepository: UserRepository
 
     @Autowired
+    lateinit var userPersonalTaskRepository: UserPersonalTaskRepository
+
+    @Autowired
     lateinit var transactionManager: TransactionManager
 
     @Test
@@ -59,7 +65,15 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
         optimizationCronJob.optimizeSchedule()
 
         verify(googleCalendarApiFacade, never()).deleteCalendarEvent(any(), any())
-        verify(googleCalendarApiFacade, never()).createClockPandaEvent(any(), any(), anyOrNull(), any(), any(), any())
+        verify(googleCalendarApiFacade, never()).createClockPandaEvent(
+            any(),
+            any(),
+            anyOrNull(),
+            any(),
+            any(),
+            any(),
+            anyOrNull()
+        )
     }
 
     @Test
@@ -73,9 +87,9 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
-                        EventFixtures.noChangeExistingFocusTime,
-                        EventFixtures.updatedExistingFocusTime,
-                        EventFixtures.externalEvent
+                        OptimizerEventFixtures.noChangeExistingFocusTime,
+                        OptimizerEventFixtures.updatedExistingFocusTime,
+                        OptimizerEventFixtures.externalOptimizerEvent
                     ),
                     users = listOf(UserFixtures.djei2WithPreferences)
                 )
@@ -103,11 +117,11 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
                     eq(UserFixtures.djei2WithPreferences),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
+                    eq(OptimizerEventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade, never()).updateClockPandaEvent(
                     eq(UserFixtures.djei2WithPreferences),
-                    eq(EventFixtures.noChangeExistingFocusTime.originalCalendarEvent!!)
+                    eq(OptimizerEventFixtures.noChangeExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade, never()).createClockPandaEvent(
                     any(),
@@ -115,7 +129,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     anyOrNull(),
                     any(),
                     any(),
-                    any()
+                    any(),
+                    anyOrNull()
                 )
             }
         }
@@ -132,8 +147,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
-                        EventFixtures.existingFocusTimeToBeDeleted,
-                        EventFixtures.externalEvent
+                        OptimizerEventFixtures.existingFocusTimeToBeDeleted,
+                        OptimizerEventFixtures.externalOptimizerEvent
                     ),
                     users = listOf(UserFixtures.djei2WithPreferences)
                 )
@@ -157,7 +172,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
                     eq(UserFixtures.djei2WithPreferences),
                     argThat {
-                        id == EventFixtures.existingFocusTimeToBeDeleted.id
+                        id == OptimizerEventFixtures.existingFocusTimeToBeDeleted.id
                     }
                 )
                 verify(googleCalendarApiFacade, never()).createClockPandaEvent(
@@ -166,7 +181,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     anyOrNull(),
                     any(),
                     any(),
-                    any()
+                    any(),
+                    anyOrNull()
                 )
             }
         }
@@ -183,8 +199,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
-                        EventFixtures.newFocusTimeToBeCreated,
-                        EventFixtures.externalEvent
+                        OptimizerEventFixtures.newFocusTimeToBeCreated,
+                        OptimizerEventFixtures.externalOptimizerEvent
                     ),
                     users = listOf(UserFixtures.djei2WithPreferences)
                 )
@@ -206,7 +222,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         anyOrNull(),
                         any(),
                         any(),
-                        any()
+                        any(),
+                        anyOrNull()
                     )
                 ).willReturn {
                     GoogleCalendarApiFacadeError.GoogleCalendarApiCreateEventError(RuntimeException("some error"))
@@ -221,7 +238,8 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     anyOrNull(),
                     any(),
                     any(),
-                    any()
+                    any(),
+                    anyOrNull()
                 )
             }
         }
@@ -238,16 +256,23 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                         weekStartDayOfWeek = DayOfWeek.MONDAY
                     ),
                     schedule = listOf(
-                        EventFixtures.newFocusTimeToBeCreated,
-                        EventFixtures.existingFocusTimeToBeDeleted,
-                        EventFixtures.updatedExistingFocusTime,
-                        EventFixtures.externalEvent
+                        OptimizerEventFixtures.newFocusTimeToBeCreated,
+                        OptimizerEventFixtures.existingFocusTimeToBeDeleted,
+                        OptimizerEventFixtures.updatedExistingFocusTime,
+                        OptimizerEventFixtures.externalOptimizerEvent,
+                        OptimizerEventFixtures.personalTaskToBeCreated,
+                        OptimizerEventFixtures.existingPersonalTaskToBeDeleted,
+                        OptimizerEventFixtures.updatedExistingPersonalTask
                     ),
                     users = listOf(UserFixtures.djei2WithPreferences)
                 )
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
                     userRepository.create(ctx, UserFixtures.djei2WithPreferences)
+                    userPersonalTaskRepository.upsertPersonalTask(
+                        ctx,
+                        UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
+                    )
                 }
                 given(googleCalendarApiFacade.listCalendarEvents(any(), any())).willReturn(
                     listOf(
@@ -267,21 +292,30 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 ).willReturn {
                     CalendarEventFixtures.focusTimeCalendarEvent1.right()
                 }
-                given(googleCalendarApiFacade.createClockPandaEvent(any(), any(), anyOrNull(), any(), any(), any()))
-                    .willReturn {
-                        CalendarEventFixtures.focusTimeCalendarEvent1.right()
-                    }
+                given(
+                    googleCalendarApiFacade.createClockPandaEvent(
+                        any(),
+                        any(),
+                        anyOrNull(),
+                        any(),
+                        any(),
+                        any(),
+                        anyOrNull()
+                    )
+                ).willReturn {
+                    CalendarEventFixtures.focusTimeCalendarEvent1.right()
+                }
 
                 optimizationCronJob.optimizeSchedule()
 
                 verify(googleCalendarApiFacade).updateClockPandaEvent(
                     eq(UserFixtures.djei2WithPreferences),
-                    eq(EventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
+                    eq(OptimizerEventFixtures.updatedExistingFocusTime.originalCalendarEvent!!)
                 )
                 verify(googleCalendarApiFacade).deleteCalendarEvent(
                     eq(UserFixtures.djei2WithPreferences),
                     argThat {
-                        id == EventFixtures.existingFocusTimeToBeDeleted.id
+                        id == OptimizerEventFixtures.existingFocusTimeToBeDeleted.id
                     }
                 )
                 verify(googleCalendarApiFacade, atMost(OPTIMIZATION_RANGE_IN_WEEKS)).createClockPandaEvent(
@@ -290,7 +324,27 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     anyOrNull(),
                     any(),
                     any(),
-                    any()
+                    eq(CalendarEventType.FOCUS_TIME),
+                    anyOrNull()
+                )
+                verify(googleCalendarApiFacade).updateClockPandaEvent(
+                    eq(UserFixtures.djei2WithPreferences),
+                    eq(OptimizerEventFixtures.updatedExistingPersonalTask.originalCalendarEvent!!)
+                )
+                verify(googleCalendarApiFacade).deleteCalendarEvent(
+                    eq(UserFixtures.djei2WithPreferences),
+                    argThat {
+                        id == OptimizerEventFixtures.existingPersonalTaskToBeDeleted.id
+                    }
+                )
+                verify(googleCalendarApiFacade).createClockPandaEvent(
+                    any(),
+                    any(),
+                    anyOrNull(),
+                    any(),
+                    any(),
+                    eq(CalendarEventType.PERSONAL_TASK),
+                    anyOrNull()
                 )
                 verify(googleCalendarApiFacade, never()).deleteCalendarEvent(
                     any(),

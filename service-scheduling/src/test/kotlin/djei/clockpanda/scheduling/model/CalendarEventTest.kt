@@ -119,7 +119,8 @@ class CalendarEventTest {
                         email = "attendee_email",
                         attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                     )
-                )
+                ),
+                personalTaskId = null
             )
         )
         assertThat(dateTimeAllFields.getDurationInMinutes(TimeZone.UTC)).isEqualTo(120)
@@ -136,7 +137,8 @@ class CalendarEventTest {
                 busy = true,
                 startTime = Instant.parse("2021-01-01T00:00:00Z"),
                 endTime = Instant.parse("2021-01-01T02:00:00Z"),
-                attendees = emptyList()
+                attendees = emptyList(),
+                personalTaskId = null
             )
         )
         assertThat(dateTimeNullFields.getDurationInMinutes(TimeZone.UTC)).isEqualTo(120)
@@ -158,7 +160,8 @@ class CalendarEventTest {
                         email = "attendee_email",
                         attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                     )
-                )
+                ),
+                personalTaskId = null
             )
         )
         assertThat(localDateAllFields.getDurationInMinutes(TimeZone.UTC)).isEqualTo(60 * 24)
@@ -175,7 +178,8 @@ class CalendarEventTest {
                 busy = true,
                 startDate = LocalDate.parse("2021-03-28"),
                 endDate = LocalDate.parse("2021-03-29"),
-                attendees = emptyList()
+                attendees = emptyList(),
+                personalTaskId = null
             )
         )
         // Notice how there is only 23 hours of duration because of daylight savings

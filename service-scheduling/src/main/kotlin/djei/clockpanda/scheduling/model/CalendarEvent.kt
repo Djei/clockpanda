@@ -3,11 +3,13 @@ package djei.clockpanda.scheduling.model
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventAttendee
 import djei.clockpanda.model.CalendarProvider
+import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade.Companion.EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_PERSONAL_TASK_ID_KEY
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade.Companion.EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import java.util.*
 import kotlin.time.DurationUnit
 
 sealed interface CalendarEvent {
@@ -28,7 +30,10 @@ sealed interface CalendarEvent {
                     busy = googleCalendarEvent.transparency != "transparent",
                     attendees = googleCalendarEvent.attendees
                         ?.map(CalendarEventAttendee::fromGoogleCalendarAttendee)
-                        ?: emptyList()
+                        ?: emptyList(),
+                    personalTaskId = googleCalendarEvent.extendedProperties
+                        ?.shared
+                        ?.get(EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_PERSONAL_TASK_ID_KEY)
                 )
             } else {
                 return LocalDateCalendarEvent(
@@ -45,7 +50,10 @@ sealed interface CalendarEvent {
                     busy = googleCalendarEvent.transparency != "transparent",
                     attendees = googleCalendarEvent.attendees
                         ?.map(CalendarEventAttendee::fromGoogleCalendarAttendee)
-                        ?: emptyList()
+                        ?: emptyList(),
+                    personalTaskId = googleCalendarEvent.extendedProperties
+                        ?.shared
+                        ?.get(EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_PERSONAL_TASK_ID_KEY)
                 )
             }
         }
@@ -60,6 +68,7 @@ sealed interface CalendarEvent {
     val owner: String
     val busy: Boolean
     val attendees: List<CalendarEventAttendee>
+    val personalTaskId: String?
 
     fun getTimeSpan(timeZone: TimeZone): TimeSpan
 
@@ -85,6 +94,7 @@ data class InstantCalendarEvent(
     override val owner: String,
     override val busy: Boolean,
     override val attendees: List<CalendarEventAttendee>,
+    override val personalTaskId: String?,
     private val startTime: Instant,
     private val endTime: Instant,
     private val type: CalendarEventType?
@@ -114,6 +124,7 @@ data class LocalDateCalendarEvent(
     override val owner: String,
     override val busy: Boolean,
     override val attendees: List<CalendarEventAttendee>,
+    override val personalTaskId: String?,
     private val startDate: LocalDate,
     private val endDate: LocalDate,
     private val type: CalendarEventType?
@@ -167,6 +178,7 @@ enum class CalendarEventAttendanceStatus {
 
 enum class CalendarEventType {
     FOCUS_TIME,
+    PERSONAL_TASK,
 
     // External event is an event not created by Clock Panda
     // e.g. an event created directly on Google Calendar that does not respect our event categorization logic
@@ -186,6 +198,7 @@ enum class CalendarEventType {
             }
             return when (extendedProperties.shared[EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY]) {
                 FOCUS_TIME.name -> FOCUS_TIME
+                PERSONAL_TASK.name -> PERSONAL_TASK
                 else -> null
             }
         }

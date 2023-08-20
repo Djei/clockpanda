@@ -9,8 +9,8 @@ import ai.timefold.solver.core.api.score.stream.Joiners
 import djei.clockpanda.model.User
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
-import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.scheduling.optimization.model.OptimizerEvent
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
 import kotlinx.datetime.toInstant
@@ -20,35 +20,44 @@ import kotlin.math.abs
 class OptimizationConstraintsProvider : ConstraintProvider {
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
-            // 1. Hard constraint: Focus time events should NOT overlap with other events - penalty proportional to overlap
+            // 1. Hard constraint: Clock Panda events should NOT overlap with other events - penalty proportional to overlap
             clockPandaEventsShouldNotOverlapWithOtherEvents(constraintFactory),
-            // 2. Hard constraint: Focus time should NOT be outside user working hours - penalty proportional to amount outside
+            // 2. Hard constraint: Clock Panda should NOT be outside user working hours - penalty proportional to amount outside
             clockPandaEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
-            // 3. Hard constraint: Focus time should start and end on the same day - fixed penalty per event
+            // 3. Hard constraint: Clock Panda should start and end on the same day - fixed penalty per event
             clockPandaEventsShouldStartAndEndOnTheSameDay(constraintFactory),
-            // 4. Medium constraint: Focus time total amount should reach the desired target - penalty proportional to amount missing
-            // Implemented as 2 constraints because empty weekly buckets are completely removed by first constraint
+            // 4. Hard constraint: Personal task should have exactly their specified duration - penalty proportional to difference
+            personalTasksShouldHaveExactlyTheirTargetDuration(constraintFactory),
+            // 5. Medium constraints:
+            // - Personal task events should reach desired target - penalty proportional to amount missing.
+            // - Focus time total amount should reach the desired target - penalty proportional to amount missing
+            // - High priority personal task > standard personal task > focus time
+            // 1 minute of focus time = 1 point
+            // 1 minute of standard personal task should be worth 20 hours of focus time = 20 * 60 = 1200 points
+            // 1 minute of high priority personal task should be worth 20 hours of standard personal task = 20 * 1200 = 24000 points
+            // Focus time scoring is implemented as 2 constraints because empty weekly buckets are completely removed by first constraint
             // See https://stackoverflow.com/questions/67274703/optaplanner-constraint-streams-other-join-types-than-inner-join
             // This forces us to implement a separate `focusTimeTotalAmountIsZeroInAWeekForGivenUser` constraint for empty buckets
+            personalTasksDurationScoring(constraintFactory),
             focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(constraintFactory),
             focusTimeTotalAmountIsZeroInAWeekForGivenUser(constraintFactory),
-            // 5. Medium constraint: An existing focus time total amount should only be moved if it gives an extra 30 minutes of focus time - fixed penalty of 30 per event moved
+            // 7. Medium constraint: An existing focus time event should only be moved if it gives an extra 30 minutes of focus time - fixed penalty of 30 per event moved
             existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime(constraintFactory),
-            // 6. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
+            // 8. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
             focusTimeShouldBeWithinPreferredFocusTimeRange(constraintFactory),
-            // 7. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
+            // 9. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
             focusTimesShouldBeScheduledOnTheHourOrHalfHour(constraintFactory)
         )
     }
 
     fun clockPandaEventsShouldNotOverlapWithOtherEvents(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
-                Event::class.java,
-                Joiners.overlapping(Event::getStartTime, Event::getEndTime),
+                OptimizerEvent::class.java,
+                Joiners.overlapping(OptimizerEvent::getStartTime, OptimizerEvent::getEndTime),
                 // ensures the event pair is unique, and we do not join an event with itself
-                Joiners.lessThan(Event::id),
+                Joiners.lessThan(OptimizerEvent::id),
                 // Ignore external event overlapping between themselves since those are existing schedule overlaps
                 Joiners.filtering { event1, event2 ->
                     !(event1.type == CalendarEventType.EXTERNAL_EVENT && event2.type == CalendarEventType.EXTERNAL_EVENT)
@@ -62,12 +71,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     }
 
     fun clockPandaEventsShouldNotBeOutsideOfWorkingHours(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type != CalendarEventType.EXTERNAL_EVENT }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
-                Joiners.equal(Event::owner, User::email)
+                Joiners.equal(OptimizerEvent::owner, User::email)
             )
             .map { event, user ->
                 val userPreferences = user.preferences!!
@@ -93,12 +102,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     }
 
     fun clockPandaEventsShouldStartAndEndOnTheSameDay(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type != CalendarEventType.EXTERNAL_EVENT }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
-                Joiners.equal(Event::owner, User::email)
+                Joiners.equal(OptimizerEvent::owner, User::email)
             )
             .filter { event, user ->
                 val userPreferredTimeZone = user.preferences!!.preferredTimeZone
@@ -107,6 +116,31 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             }
             .penalize(HardMediumSoftScore.ONE_HARD) { _, _ -> 1 }
             .asConstraint("Clock Panda Events should start and end on the same day")
+    }
+
+    fun personalTasksShouldHaveExactlyTheirTargetDuration(factory: ConstraintFactory): Constraint {
+        return factory.forEach(OptimizerEvent::class.java)
+            .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .penalize(HardMediumSoftScore.ONE_HARD) { e ->
+                val missingInMinutes = abs(e.personalTaskTargetDurationInMinutes!! - e.getDurationInMinutes())
+                missingInMinutes
+            }
+            .asConstraint("Personal tasks should have exactly their target duration")
+    }
+
+    fun personalTasksDurationScoring(factory: ConstraintFactory): Constraint {
+        return factory.forEach(OptimizerEvent::class.java)
+            .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
+            .penalize(HardMediumSoftScore.ONE_MEDIUM) { e ->
+                val missingInMinutes = abs(e.personalTaskTargetDurationInMinutes!! - e.getDurationInMinutes())
+                if (e.isHighPriorityPersonalTask!!) {
+                    missingInMinutes * 24000
+                } else {
+                    missingInMinutes * 1200
+                }
+            }
+            .asConstraint("Personal tasks duration scoring")
     }
 
     fun focusTimeTotalAmountPartiallyMeetingUserWeeklyTarget(factory: ConstraintFactory): Constraint {
@@ -118,9 +152,14 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             }
             // Join user buckets with all events that they contain
             .join(
-                Event::class.java,
-                Joiners.equal({ u, _ -> u.email }, Event::owner),
-                Joiners.overlapping({ _, b -> b.start }, { _, b -> b.end }, Event::getStartTime, Event::getEndTime),
+                OptimizerEvent::class.java,
+                Joiners.equal({ u, _ -> u.email }, OptimizerEvent::owner),
+                Joiners.overlapping(
+                    { _, b -> b.start },
+                    { _, b -> b.end },
+                    OptimizerEvent::getStartTime,
+                    OptimizerEvent::getEndTime
+                ),
                 Joiners.filtering { _, _, e -> e.type == CalendarEventType.FOCUS_TIME }
             )
             // Group events in the buckets
@@ -144,9 +183,14 @@ class OptimizationConstraintsProvider : ConstraintProvider {
                 p.splitExistingScheduleConsiderationRangeInWeeklyBuckets()
             }
             .ifNotExists(
-                Event::class.java,
-                Joiners.equal({ u, _ -> u.email }, Event::owner),
-                Joiners.overlapping({ _, b -> b.start }, { _, b -> b.end }, Event::getStartTime, Event::getEndTime),
+                OptimizerEvent::class.java,
+                Joiners.equal({ u, _ -> u.email }, OptimizerEvent::owner),
+                Joiners.overlapping(
+                    { _, b -> b.start },
+                    { _, b -> b.end },
+                    OptimizerEvent::getStartTime,
+                    OptimizerEvent::getEndTime
+                ),
                 Joiners.filtering { _, _, e -> e.type == CalendarEventType.FOCUS_TIME }
             )
             .penalize(HardMediumSoftScore.ONE_MEDIUM) { user, _ ->
@@ -157,7 +201,7 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     }
 
     fun existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .filter { e -> e.originalCalendarEvent != null }
@@ -167,12 +211,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     }
 
     fun focusTimeShouldBeWithinPreferredFocusTimeRange(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
-                Joiners.equal(Event::owner, User::email)
+                Joiners.equal(OptimizerEvent::owner, User::email)
             )
             .map { event, user ->
                 val userPreferences = user.preferences!!
@@ -191,12 +235,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
     }
 
     fun focusTimesShouldBeScheduledOnTheHourOrHalfHour(factory: ConstraintFactory): Constraint {
-        return factory.forEach(Event::class.java)
+        return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
-                Joiners.equal(Event::owner, User::email)
+                Joiners.equal(OptimizerEvent::owner, User::email)
             )
             .filter { event, user ->
                 val userPreferredTimeZone = user.preferences!!.preferredTimeZone

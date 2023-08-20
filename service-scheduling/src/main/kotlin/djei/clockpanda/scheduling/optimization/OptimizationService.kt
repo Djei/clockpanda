@@ -12,20 +12,26 @@ import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.model.User
+import djei.clockpanda.model.UserPersonalTask
+import djei.clockpanda.model.UserPersonalTaskMetadata
+import djei.clockpanda.model.UserPreferences
+import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
+import djei.clockpanda.scheduling.model.CalendarEvent
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.optimization.constraint.OptimizationConstraintsProvider
-import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.scheduling.optimization.model.OptimizerEvent
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.DayOfWeek
 import org.slf4j.Logger
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import java.util.*
 
 @Service
 class OptimizationService(
@@ -33,6 +39,7 @@ class OptimizationService(
     private val solverSecondsSpentTerminationConfig: Long,
     private val googleCalendarApiFacade: GoogleCalendarApiFacade,
     private val userRepository: UserRepository,
+    private val userPersonalTaskRepository: UserPersonalTaskRepository,
     private val transactionManager: TransactionManager,
     private val logger: Logger
 ) {
@@ -64,6 +71,10 @@ class OptimizationService(
         logger.info("Generating optimization problem for user ${user.email}")
         val userPreferences = user.preferences
             ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
+        val activeUserPersonalTasks = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.listByUserEmail(ctx, user.email)
+        }.getOrElse { return OptimizationServiceError.UserPersonalTaskRepositoryError(it).left() }
+            .filter { it.isActive() }
 
         val optimizationProblemParameters = OptimizationProblem.OptimizationProblemParameters(
             optimizationMaxRangeInWeeks = OPTIMIZATION_RANGE_IN_WEEKS,
@@ -83,26 +94,26 @@ class OptimizationService(
             .filter { it.busy }
             // This works for now as we are only optimizing for a single user
             .filter { it.isUserAttending(user.email) }
-            .map { calendarEvent ->
-                Event.fromCalendarEvent(calendarEvent, userPreferences.preferredTimeZone)
-            }
-        val existingFocusTimes = existingSchedule.filter { it.type == CalendarEventType.FOCUS_TIME }
 
         val planningEntityOptimizationRange = optimizationProblemParameters.planningEntityOptimizationRange
-        // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
-        // It will simply reduce some to 0 duration if it can't fit them all
-        val focusTimeMaxPoolSize = OPTIMIZATION_RANGE_IN_WEEKS * 7 * 2 // 2 focus time block per day
-        val extraFocusTimesToOptimize = (1..focusTimeMaxPoolSize - existingFocusTimes.size).map { index ->
-            Event(
-                id = "focus-time-$index",
-                type = CalendarEventType.FOCUS_TIME,
-                startTimeGrain = TimeGrain(planningEntityOptimizationRange.start),
-                durationInTimeGrains = 0,
-                originalCalendarEvent = null,
-                owner = user.email
-            )
+
+        val scheduleToOptimize = extractExternalOptimizerEventsFromExistingSchedule(
+            userPreferences,
+            existingSchedule
+        ) + extractFocusTimeOptimizerEventsFromExistingSchedule(
+            user,
+            userPreferences,
+            planningEntityOptimizationRange,
+            existingSchedule
+        ) + extractPersonalTaskOptimizerEventsFromExistingSchedule(
+            user,
+            userPreferences,
+            planningEntityOptimizationRange,
+            activeUserPersonalTasks,
+            existingSchedule
+        ).getOrElse {
+            return it.left()
         }
-        val scheduleToOptimize = existingSchedule + extraFocusTimesToOptimize
         return OptimizationProblem(
             parameters = optimizationProblemParameters,
             schedule = scheduleToOptimize,
@@ -110,10 +121,140 @@ class OptimizationService(
         ).right()
     }
 
+    private fun extractExternalOptimizerEventsFromExistingSchedule(
+        userPreferences: UserPreferences,
+        existingSchedule: List<CalendarEvent>
+    ): List<OptimizerEvent> {
+        return existingSchedule
+            .filter { it.getCalendarEventType() == CalendarEventType.EXTERNAL_EVENT }
+            .map {
+                val calendarEventTimeSpan = it.getTimeSpan(userPreferences.preferredTimeZone)
+                val calendarEventDurationInMinutes = it.getDurationInMinutes(userPreferences.preferredTimeZone)
+                OptimizerEvent(
+                    id = it.id,
+                    startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
+                    durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
+                    type = it.getCalendarEventType(),
+                    title = it.title,
+                    originalCalendarEvent = it,
+                    owner = it.owner,
+                    personalTaskId = null,
+                    personalTaskTargetDurationInMinutes = null,
+                    isHighPriorityPersonalTask = null
+                )
+            }
+    }
+
+    private fun extractFocusTimeOptimizerEventsFromExistingSchedule(
+        user: User,
+        userPreferences: UserPreferences,
+        planningEntityOptimizationRange: TimeSpan,
+        existingSchedule: List<CalendarEvent>
+    ): List<OptimizerEvent> {
+        val existingFocusTimeOptimizerEvents = existingSchedule
+            .filter { it.getCalendarEventType() == CalendarEventType.FOCUS_TIME }
+            .map {
+                val calendarEventTimeSpan = it.getTimeSpan(userPreferences.preferredTimeZone)
+                val calendarEventDurationInMinutes = it.getDurationInMinutes(userPreferences.preferredTimeZone)
+                OptimizerEvent(
+                    id = it.id,
+                    startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
+                    durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
+                    type = it.getCalendarEventType(),
+                    title = it.title,
+                    originalCalendarEvent = it,
+                    owner = it.owner,
+                    personalTaskId = null,
+                    personalTaskTargetDurationInMinutes = null,
+                    isHighPriorityPersonalTask = null
+                )
+            }
+        // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
+        // It will simply reduce some to 0 duration if it can't fit them all
+        val focusTimeMaxPoolSize = OPTIMIZATION_RANGE_IN_WEEKS * 7 * 2 // 2 focus time block per day
+        val extraFocusTimesToOptimize = (1..focusTimeMaxPoolSize - existingFocusTimeOptimizerEvents.size).map { index ->
+            OptimizerEvent(
+                id = "focus-time-$index",
+                type = CalendarEventType.FOCUS_TIME,
+                title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                startTimeGrain = TimeGrain(planningEntityOptimizationRange.start),
+                durationInTimeGrains = 0,
+                originalCalendarEvent = null,
+                owner = user.email,
+                personalTaskId = null,
+                personalTaskTargetDurationInMinutes = null,
+                isHighPriorityPersonalTask = null
+            )
+        }
+        return existingFocusTimeOptimizerEvents + extraFocusTimesToOptimize
+    }
+
+    private fun extractPersonalTaskOptimizerEventsFromExistingSchedule(
+        user: User,
+        userPreferences: UserPreferences,
+        planningEntityOptimizationRange: TimeSpan,
+        activeUserPersonalTasks: List<UserPersonalTask>,
+        existingSchedule: List<CalendarEvent>
+    ): Either<OptimizationServiceError, List<OptimizerEvent>> {
+        val existingPersonalTasks = existingSchedule
+            .filter { it.getCalendarEventType() == CalendarEventType.PERSONAL_TASK }
+        val activeUserPersonalTaskIds = activeUserPersonalTasks.map { it.id.toString() }
+        // For each personal task in the existing schedule, check whether there is corresponding active personal task
+        // If not, delete if from Google calendar
+        existingPersonalTasks.forEach { event ->
+            if (event.personalTaskId !in activeUserPersonalTaskIds) {
+                googleCalendarApiFacade.deleteCalendarEvent(user, event)
+                    .getOrElse {
+                        return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                    }
+            }
+        }
+
+        val existingPersonalTasksById = existingPersonalTasks.associateBy {
+            it.personalTaskId
+        }
+        // For each active personal task, check whether there is a corresponding personal task in the existing schedule
+        // If there is, use it to build the optimizer event. If not create a new one
+        return activeUserPersonalTasks.map { activeUserPersonalTask ->
+            val existingPersonalTask = existingPersonalTasksById[activeUserPersonalTask.id.toString()]
+            if (existingPersonalTask == null) {
+                OptimizerEvent(
+                    id = activeUserPersonalTask.id.toString(),
+                    startTimeGrain = TimeGrain(planningEntityOptimizationRange.start),
+                    durationInTimeGrains = 0,
+                    type = CalendarEventType.PERSONAL_TASK,
+                    title = activeUserPersonalTask.title,
+                    originalCalendarEvent = null,
+                    owner = user.email,
+                    personalTaskId = activeUserPersonalTask.id.toString(),
+                    personalTaskTargetDurationInMinutes = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).oneOffTaskDurationInMinutes,
+                    isHighPriorityPersonalTask = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).isHighPriority
+                )
+            } else {
+                val calendarEventTimeSpan = existingPersonalTask.getTimeSpan(userPreferences.preferredTimeZone)
+                val calendarEventDurationInMinutes = existingPersonalTask.getDurationInMinutes(
+                    userPreferences.preferredTimeZone
+                )
+                OptimizerEvent(
+                    id = existingPersonalTask.id,
+                    startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
+                    durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
+                    type = existingPersonalTask.getCalendarEventType(),
+                    title = existingPersonalTask.title,
+                    originalCalendarEvent = existingPersonalTask,
+                    owner = existingPersonalTask.owner,
+                    personalTaskId = existingPersonalTask.personalTaskId,
+                    personalTaskTargetDurationInMinutes = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).oneOffTaskDurationInMinutes,
+                    isHighPriorityPersonalTask = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).isHighPriority
+                )
+            }
+        }.right()
+    }
+
     private fun getOptimizationProblemSolverFactory(): SolverFactory<OptimizationProblem> {
         val solverConfig = SolverConfig()
             .withSolutionClass(OptimizationProblem::class.java)
-            .withEntityClasses(Event::class.java)
+            .withEntityClasses(OptimizerEvent::class.java)
             .withScoreDirectorFactory(
                 ScoreDirectorFactoryConfig()
                     .withConstraintProviderClass(OptimizationConstraintsProvider::class.java)
@@ -128,21 +269,29 @@ class OptimizationService(
         optimizedScheduleResult: OptimizedScheduleResult
     ): Either<OptimizationServiceError, Unit> {
         val user = optimizedScheduleResult.user
+
         val optimizedFocusTimes = optimizedScheduleResult.focusTimes
         val newFocusTimes = optimizedFocusTimes.filter { it.originalCalendarEvent == null }
         val existingFocusTimes = optimizedFocusTimes.filter { it.originalCalendarEvent != null }
-
+        handleNewFocusTimes(user, newFocusTimes)
+            .getOrElse { return it.left() }
         handleExistingFocusTimes(user, existingFocusTimes)
             .getOrElse { return it.left() }
-        handleNewFocusTimes(newFocusTimes, user)
+
+        val optimizedPersonalTasks = optimizedScheduleResult.personalTasks
+        val newPersonalTasks = optimizedPersonalTasks.filter { it.originalCalendarEvent == null }
+        val existingPersonalTasks = optimizedPersonalTasks.filter { it.originalCalendarEvent != null }
+        handleNewPersonalTasks(user, newPersonalTasks)
+            .getOrElse { return it.left() }
+        handleExistingPersonalTasks(user, existingPersonalTasks)
             .getOrElse { return it.left() }
 
         return Unit.right()
     }
 
     private fun handleNewFocusTimes(
-        newFocusTimes: List<Event>,
-        user: User
+        user: User,
+        newFocusTimes: List<OptimizerEvent>
     ): Either<OptimizationServiceError, Unit> {
         newFocusTimes.filter {
             it.getDurationInMinutes() != 0
@@ -150,7 +299,7 @@ class OptimizationService(
             logger.info("Creating focus time event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
             googleCalendarApiFacade.createClockPandaEvent(
                 user = user,
-                title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
+                title = it.title,
                 description = null,
                 startTime = it.getStartTime(),
                 endTime = it.getEndTime(),
@@ -164,7 +313,7 @@ class OptimizationService(
 
     private fun handleExistingFocusTimes(
         user: User,
-        existingFocusTimes: List<Event>
+        existingFocusTimes: List<OptimizerEvent>
     ): Either<OptimizationServiceError, Unit> {
         existingFocusTimes.forEach { it ->
             // If duration is now 0, delete the event
@@ -194,16 +343,76 @@ class OptimizationService(
         return Unit.right()
     }
 
+    private fun handleNewPersonalTasks(
+        user: User,
+        newPersonalTasks: List<OptimizerEvent>
+    ): Either<OptimizationServiceError, Unit> {
+        newPersonalTasks.filter {
+            it.getDurationInMinutes() != 0
+        }.forEach { it ->
+            logger.info("Creating personal task event for user ${user.email}: ${it.getStartTime()} - ${it.getEndTime()}}")
+            googleCalendarApiFacade.createClockPandaEvent(
+                user = user,
+                title = it.title,
+                description = null,
+                startTime = it.getStartTime(),
+                endTime = it.getEndTime(),
+                calendarEventType = CalendarEventType.PERSONAL_TASK,
+                personalTaskId = it.personalTaskId
+            ).getOrElse {
+                return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+            }
+            // TODO update currently scheduled for on personal task metadata
+        }
+        return Unit.right()
+    }
+
+    private fun handleExistingPersonalTasks(
+        user: User,
+        existingPersonalTasks: List<OptimizerEvent>
+    ): Either<OptimizationServiceError, Unit> {
+        existingPersonalTasks.forEach { it ->
+            // If duration is now 0, delete the event
+            if (it.getDurationInMinutes() == 0) {
+                logger.info("Deleting personal task event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
+                googleCalendarApiFacade.deleteCalendarEvent(user, it.originalCalendarEvent)
+                    .getOrElse {
+                        return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                    }
+            } else {
+                val preferredTimeZone = user.preferences?.preferredTimeZone
+                    ?: return OptimizationServiceError.UserHasNoPreferencesError(user).left()
+                val hasChangedFromOriginal = it.hasChangedFromOriginal(preferredTimeZone)
+                if (hasChangedFromOriginal) {
+                    logger.info("Updating personal task event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
+                    googleCalendarApiFacade.updateClockPandaEvent(
+                        user,
+                        it.originalCalendarEvent
+                    ).getOrElse {
+                        return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
+                    }
+                    // TODO update currently scheduled for on personal task metadata
+                } else {
+                    logger.info("No change detected for personal task event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
+                }
+            }
+        }
+        return Unit.right()
+    }
+
     data class OptimizedScheduleResult(
         val user: User,
-        val focusTimes: List<Event>
+        val focusTimes: List<OptimizerEvent>,
+        val personalTasks: List<OptimizerEvent>
     ) {
         companion object {
             fun fromSolvedOptimizationProblem(solvedOptimizationProblem: OptimizationProblem): OptimizedScheduleResult {
                 return OptimizedScheduleResult(
                     user = solvedOptimizationProblem.users.first(),
                     focusTimes = solvedOptimizationProblem.schedule
-                        .filter { it.type == CalendarEventType.FOCUS_TIME }
+                        .filter { it.type == CalendarEventType.FOCUS_TIME },
+                    personalTasks = solvedOptimizationProblem.schedule
+                        .filter { it.type == CalendarEventType.PERSONAL_TASK }
                 )
             }
         }

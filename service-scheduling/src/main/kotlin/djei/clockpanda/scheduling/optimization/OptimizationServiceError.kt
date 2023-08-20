@@ -28,4 +28,11 @@ sealed class OptimizationServiceError(
         "solver error: ${cause.message ?: "unknown error"}",
         cause
     )
+
+    data class UserPersonalTaskRepositoryError(
+        val userPersonalTaskRepositoryError: djei.clockpanda.repository.UserPersonalTaskRepositoryError
+    ) : OptimizationServiceError(
+        "user repository error: ${userPersonalTaskRepositoryError.message}",
+        userPersonalTaskRepositoryError
+    )
 }

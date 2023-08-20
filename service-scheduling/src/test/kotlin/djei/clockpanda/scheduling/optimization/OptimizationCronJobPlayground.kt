@@ -1,5 +1,6 @@
 package djei.clockpanda.scheduling.optimization
 
+import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.scheduling.googlecalendar.GoogleCalendarApiFacade
 import djei.clockpanda.transaction.TransactionManager
@@ -14,7 +15,11 @@ import java.sql.DriverManager
 class OptimizationCronJobPlayground {
 
     private val userRepository = UserRepository()
-    private val dsl = DSL.using(DriverManager.getConnection("jdbc:sqlite:file:../db.sqlite3?foreign_keys=on"), SQLDialect.SQLITE)
+    private val userPersonalTaskRepository = UserPersonalTaskRepository()
+    private val dsl = DSL.using(
+        DriverManager.getConnection("jdbc:sqlite:file:../db.sqlite3?foreign_keys=on"),
+        SQLDialect.SQLITE
+    )
     private val googleCalendarApiFacade = GoogleCalendarApiFacade(
         googleClientId = "",
         googleClientSecret = ""
@@ -27,6 +32,7 @@ class OptimizationCronJobPlayground {
             solverSecondsSpentTerminationConfig = 30L,
             googleCalendarApiFacade = googleCalendarApiFacade,
             userRepository = userRepository,
+            userPersonalTaskRepository = userPersonalTaskRepository,
             transactionManager = transactionManager,
             logger = LoggerFactory.getLogger(OptimizationService::class.java)
         )

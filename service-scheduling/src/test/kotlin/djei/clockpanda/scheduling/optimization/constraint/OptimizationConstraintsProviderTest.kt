@@ -3,10 +3,11 @@ package djei.clockpanda.scheduling.optimization.constraint
 import ai.timefold.solver.test.api.score.stream.ConstraintVerifier
 import djei.clockpanda.model.LocalTimeSpan
 import djei.clockpanda.model.fixtures.UserFixtures
+import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
-import djei.clockpanda.scheduling.optimization.model.Event
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
+import djei.clockpanda.scheduling.optimization.model.OptimizerEvent
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.Instant
@@ -18,74 +19,98 @@ class OptimizationConstraintsProviderTest {
     private val constraintVerifier = ConstraintVerifier.build(
         OptimizationConstraintsProvider(),
         OptimizationProblem::class.java,
-        Event::class.java
+        OptimizerEvent::class.java
     )
 
     @Test
     fun `penalize if focus time event overlaps with other events`() {
-        val focusTime1 = Event(
+        val focusTime1 = OptimizerEvent(
             id = "focus-time-1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T02:00:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val focusTime2 = Event(
+        val focusTime2 = OptimizerEvent(
             id = "focus-time-2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T01:45:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T03:45:00Z
             originalCalendarEvent = null,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
         // External event 1 partially overlaps with focus time
-        val externalEvent1 = Event(
+        val externalOptimizerEvent1 = OptimizerEvent(
             id = "6fpknj2tjkc2ee2v32q7ve8t04",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T03:00:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T05:00:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
         // External event 2 does not overlap with focus time but with external event 1 (which should not be penalized)
-        val externalEvent2 = Event(
+        val externalOptimizerEvent2 = OptimizerEvent(
             id = "bpokgerzlkc2ee2v32asdlklw",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 2",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T04:45:00Z")
             ),
             durationInTimeGrains = 8, // End time: 2021-01-01T06:45:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
         // External event 3 is completely contained within focus time
-        val externalEvent3 = Event(
+        val externalOptimizerEvent3 = OptimizerEvent(
             id = "asdqwejkasdjo9i3jodas236",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 3",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T02:00:00Z")
             ),
             durationInTimeGrains = 4, // End time: 2021-01-01T03:00:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
         // External event 4 completely contains focus time
-        val externalEvent4 = Event(
+        val externalOptimizerEvent4 = OptimizerEvent(
             id = "asdjoilkjio3940dsfoj312",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 4",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T01:30:00Z")
             ),
             durationInTimeGrains = 24, // End time: 2021-01-01T07:30:00Z
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -97,10 +122,10 @@ class OptimizationConstraintsProviderTest {
             schedule = listOf(
                 focusTime1,
                 focusTime2,
-                externalEvent1,
-                externalEvent2,
-                externalEvent3,
-                externalEvent4
+                externalOptimizerEvent1,
+                externalOptimizerEvent2,
+                externalOptimizerEvent3,
+                externalOptimizerEvent4
             ),
             users = listOf(UserFixtures.djei2WithPreferences)
         )
@@ -118,25 +143,33 @@ class OptimizationConstraintsProviderTest {
 
     @Test
     fun `penalize if focus time is outside of user preferences working hours`() {
-        val focusTimeOutsideWorkingHours = Event(
+        val focusTimeOutsideWorkingHours = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T08:00:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val focusTimeInsideWorkingHours = Event(
+        val focusTimeInsideWorkingHours = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T14:00:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -164,35 +197,47 @@ class OptimizationConstraintsProviderTest {
         val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferenceWithEuropeLondonPreferredTimezone
         )
-        val focusTimeWithStartAndEndDateNotSameDay = Event(
+        val focusTimeWithStartAndEndDateNotSameDay = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T23:00:00Z")
             ),
             durationInTimeGrains = 24,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val focusTimeNotPassingInUserTimeZone = Event(
+        val focusTimeNotPassingInUserTimeZone = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-07-07T23:45:00Z")
             ),
             durationInTimeGrains = 2,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val externalEventDoesNotCount = Event(
+        val externalOptimizerEventDoesNotCount = OptimizerEvent(
             id = "3",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T23:00:00Z")
             ),
             durationInTimeGrains = 24,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -204,7 +249,7 @@ class OptimizationConstraintsProviderTest {
             schedule = listOf(
                 focusTimeWithStartAndEndDateNotSameDay,
                 focusTimeNotPassingInUserTimeZone,
-                externalEventDoesNotCount
+                externalOptimizerEventDoesNotCount
             ),
             users = listOf(user)
         )
@@ -212,6 +257,124 @@ class OptimizationConstraintsProviderTest {
         constraintVerifier.verifyThat(OptimizationConstraintsProvider::clockPandaEventsShouldStartAndEndOnTheSameDay)
             .givenSolution(solution)
             .penalizesBy(1)
+    }
+
+    @Test
+    fun `penalize if personal task does not have exactly the target duration`() {
+        val user = UserFixtures.djei2WithPreferences
+        val eventExceedingTargetDuration = OptimizerEvent(
+            id = "exceeding",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 8,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent2,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent2.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = true
+        )
+        val eventZeroTargetDuration = OptimizerEvent(
+            id = "zero",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 0,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent1,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent1.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = true
+        )
+        val eventNotEnoughTargetDuration = OptimizerEvent(
+            id = "not_enough",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 1,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent1,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent1.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = true
+        )
+        val eventMeetingTargetDuration = OptimizerEvent(
+            id = "meeting",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 4,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent1,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent1.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = true
+        )
+
+        val solution = OptimizationProblem(
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
+            ),
+            schedule = listOf(
+                eventMeetingTargetDuration,
+                eventNotEnoughTargetDuration,
+                eventZeroTargetDuration,
+                eventExceedingTargetDuration
+            ),
+            users = listOf(user)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::personalTasksShouldHaveExactlyTheirTargetDuration)
+            .givenSolution(solution)
+            .penalizesBy(105)
+    }
+
+    @Test
+    fun `penalize according to personal task scoring`() {
+        val user = UserFixtures.djei2WithPreferences
+        val eventExceedingTargetDuration = OptimizerEvent(
+            id = "exceeding",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 8,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent2,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent2.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = false
+        )
+        val eventNotEnoughTargetDuration = OptimizerEvent(
+            id = "not_enough",
+            startTimeGrain = TimeGrain(Instant.parse("2021-01-18T00:00:00Z")),
+            durationInTimeGrains = 1,
+            type = CalendarEventType.PERSONAL_TASK,
+            title = "personal task",
+            originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent1,
+            owner = "user1",
+            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent1.personalTaskId,
+            personalTaskTargetDurationInMinutes = 60,
+            isHighPriorityPersonalTask = true
+        )
+
+        val solution = OptimizationProblem(
+            parameters = OptimizationProblem.OptimizationProblemParameters(
+                optimizationReferenceInstant = Instant.parse("2021-01-01T00:00:00Z"),
+                optimizationMaxRangeInWeeks = 2,
+                weekStartDayOfWeek = DayOfWeek.MONDAY
+            ),
+            schedule = listOf(
+                eventNotEnoughTargetDuration,
+                eventExceedingTargetDuration
+            ),
+            users = listOf(user)
+        )
+
+        constraintVerifier.verifyThat(OptimizationConstraintsProvider::personalTasksDurationScoring)
+            .givenSolution(solution)
+            .penalizesBy(45 * 24000 + 60 * 1200)
     }
 
     @Test
@@ -223,35 +386,47 @@ class OptimizationConstraintsProviderTest {
         val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
-        val threeHoursOfFocusTime = Event(
+        val threeHoursOfFocusTime = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 12,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val fourHoursOfFocusTime = Event(
+        val fourHoursOfFocusTime = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-02T00:00:00Z")
             ),
             durationInTimeGrains = 16,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val externalEvent1 = Event(
+        val externalOptimizerEvent1 = OptimizerEvent(
             id = "3",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-03T00:00:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -260,7 +435,7 @@ class OptimizationConstraintsProviderTest {
                 optimizationMaxRangeInWeeks = 2,
                 weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
-            schedule = listOf(threeHoursOfFocusTime, fourHoursOfFocusTime, externalEvent1),
+            schedule = listOf(threeHoursOfFocusTime, fourHoursOfFocusTime, externalOptimizerEvent1),
             users = listOf(UserFixtures.djei2WithPreferences)
         )
 
@@ -280,35 +455,47 @@ class OptimizationConstraintsProviderTest {
 
     @Test
     fun `penalize if existing focus time is moved`() {
-        val existingFocusTimeThatHasNotMoved = Event(
+        val existingFocusTimeThatHasNotMoved = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-01T00:00:00Z")
             ),
             durationInTimeGrains = 12,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent1,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val existingFocusTimeThatHasMoved = Event(
+        val existingFocusTimeThatHasMoved = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-12T00:00:00Z")
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent2,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val externalEvent1 = Event(
+        val externalOptimizerEvent1 = OptimizerEvent(
             id = "3",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-01-03T00:00:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = UserFixtures.djei2WithPreferences.email
+            owner = UserFixtures.djei2WithPreferences.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -317,7 +504,7 @@ class OptimizationConstraintsProviderTest {
                 optimizationMaxRangeInWeeks = 2,
                 weekStartDayOfWeek = DayOfWeek.MONDAY
             ),
-            schedule = listOf(existingFocusTimeThatHasNotMoved, existingFocusTimeThatHasMoved, externalEvent1),
+            schedule = listOf(existingFocusTimeThatHasNotMoved, existingFocusTimeThatHasMoved, externalOptimizerEvent1),
             users = listOf(UserFixtures.djei2WithPreferences)
         )
 
@@ -336,35 +523,47 @@ class OptimizationConstraintsProviderTest {
         val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
-        val focusTimeOutsidePreferredRange = Event(
+        val focusTimeOutsidePreferredRange = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-24T07:00:00Z")
             ),
             durationInTimeGrains = 12,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val focusTimeWithinPreferredRange = Event(
+        val focusTimeWithinPreferredRange = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-25T16:00:00Z")
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val externalEvent1OutsidePreferredRange = Event(
+        val externalOptimizerEvent1OutsidePreferredRange = OptimizerEvent(
             id = "3",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-26T07:00:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -376,7 +575,7 @@ class OptimizationConstraintsProviderTest {
             schedule = listOf(
                 focusTimeOutsidePreferredRange,
                 focusTimeWithinPreferredRange,
-                externalEvent1OutsidePreferredRange
+                externalOptimizerEvent1OutsidePreferredRange
             ),
             users = listOf(user)
         )
@@ -394,55 +593,75 @@ class OptimizationConstraintsProviderTest {
         val user = UserFixtures.djei2WithPreferences.copy(
             preferences = userPreferences
         )
-        val onTheHour = Event(
+        val onTheHour = OptimizerEvent(
             id = "1",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-24T07:00:00Z")
             ),
             durationInTimeGrains = 12,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val onTheHalfHour = Event(
+        val onTheHalfHour = OptimizerEvent(
             id = "2",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-25T16:00:00Z")
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val at15Minutes = Event(
+        val at15Minutes = OptimizerEvent(
             id = "3",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-26T16:15:00Z")
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val at45Minutes = Event(
+        val at45Minutes = OptimizerEvent(
             id = "4",
             type = CalendarEventType.FOCUS_TIME,
+            title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-27T16:45:00Z")
             ),
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
-        val externalEvent = Event(
+        val externalOptimizerEvent = OptimizerEvent(
             id = "5",
             type = CalendarEventType.EXTERNAL_EVENT,
+            title = "external event 1",
             startTimeGrain = TimeGrain(
                 start = Instant.parse("2021-03-26T07:15:00Z")
             ),
             durationInTimeGrains = 8,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
-            owner = user.email
+            owner = user.email,
+            personalTaskId = null,
+            personalTaskTargetDurationInMinutes = null,
+            isHighPriorityPersonalTask = null
         )
 
         val solution = OptimizationProblem(
@@ -456,7 +675,7 @@ class OptimizationConstraintsProviderTest {
                 onTheHalfHour,
                 at15Minutes,
                 at45Minutes,
-                externalEvent
+                externalOptimizerEvent
             ),
             users = listOf(user)
         )

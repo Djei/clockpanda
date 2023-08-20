@@ -1,13 +1,16 @@
 package djei.clockpanda.transaction
 
 import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.model.fixtures.UserFixtures
 import djei.clockpanda.repository.UserRepository
+import djei.clockpanda.repository.UserRepositoryError
 import djei.clockpanda.testing.ClockPandaSpringBootTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -19,6 +22,19 @@ class TransactionManagerTest {
 
     @Autowired
     lateinit var userRepository: UserRepository
+
+    @Test
+    fun `test transaction rollback when exception is thrown`() {
+        assertThrows<RuntimeException> {
+            transactionManager.transaction { ctx ->
+                functionThatThrows(ctx)
+            }
+        }
+        val afterRetrieve = transactionManager.transaction { ctx ->
+            userRepository.fetchByEmail(ctx, UserFixtures.djei2WithPreferences.email)
+        }.getOrElse { fail("This should return right value", it) }
+        assertThat(afterRetrieve).isNull()
+    }
 
     @Test
     fun `test transaction rollback when block returns Either Left`() {
@@ -52,5 +68,10 @@ class TransactionManagerTest {
                 assertThat(leftEitherRetrieveAfterCreate.value).isNull()
             }
         }
+    }
+
+    private fun functionThatThrows(ctx: TransactionalContext): Either<UserRepositoryError, Unit> {
+        userRepository.create(ctx, UserFixtures.djei2WithPreferences)
+        throw RuntimeException("runtime exception")
     }
 }

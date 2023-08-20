@@ -27,7 +27,7 @@ class OptimizationProblem(
     @ProblemFactProperty
     val parameters: OptimizationProblemParameters,
     @PlanningEntityCollectionProperty
-    val schedule: List<Event>,
+    val schedule: List<OptimizerEvent>,
     @ProblemFactCollectionProperty
     val users: List<User>
 ) {

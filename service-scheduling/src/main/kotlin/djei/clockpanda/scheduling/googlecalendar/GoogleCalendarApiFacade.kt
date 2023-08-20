@@ -38,6 +38,7 @@ class GoogleCalendarApiFacade(
     companion object {
         val ACCESS_TOKEN_CACHE = mutableMapOf<String, AccessToken>()
         const val EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY = "ClockPandaEventType"
+        const val EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_PERSONAL_TASK_ID_KEY = "ClockPandaEventPersonalTaskId"
     }
 
     fun listCalendarEvents(
@@ -73,7 +74,8 @@ class GoogleCalendarApiFacade(
         description: String? = null,
         startTime: Instant,
         endTime: Instant,
-        calendarEventType: CalendarEventType
+        calendarEventType: CalendarEventType,
+        personalTaskId: String? = null
     ): Either<GoogleCalendarApiFacadeError, CalendarEvent> {
         if (calendarEventType == CalendarEventType.EXTERNAL_EVENT) {
             return GoogleCalendarApiFacadeError.NotAllowedToCreateExternalEventError(title).left()
@@ -94,8 +96,12 @@ class GoogleCalendarApiFacade(
             )
             eventToInsert.extendedProperties = Event.ExtendedProperties().setShared(
                 mutableMapOf(
-                    EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY to calendarEventType.name
-                )
+                    EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_TYPE_KEY to calendarEventType.name,
+                ).apply {
+                    if (personalTaskId != null) {
+                        this[EXTENDED_PROPERTY_CLOCK_PANDA_EVENT_PERSONAL_TASK_ID_KEY] = personalTaskId
+                    }
+                }
             )
             val result = calendarService.events().insert(
                 "primary",

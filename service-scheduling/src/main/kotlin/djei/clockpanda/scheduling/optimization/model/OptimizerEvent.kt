@@ -16,7 +16,7 @@ import kotlin.time.DurationUnit
 
 @NoArg
 @PlanningEntity
-class Event(
+class OptimizerEvent(
     @PlanningId
     val id: String,
     @PlanningVariable(valueRangeProviderRefs = ["startTimeGrainRange"])
@@ -24,24 +24,13 @@ class Event(
     @PlanningVariable(valueRangeProviderRefs = ["durationInTimeGrainsRange"])
     var durationInTimeGrains: Int?,
     val type: CalendarEventType,
+    val title: String,
     val originalCalendarEvent: CalendarEvent?,
-    val owner: String
+    val owner: String,
+    val personalTaskId: String?,
+    val personalTaskTargetDurationInMinutes: Int?,
+    val isHighPriorityPersonalTask: Boolean?
 ) {
-    companion object {
-        fun fromCalendarEvent(calendarEvent: CalendarEvent, timeZone: TimeZone): Event {
-            val calendarEventTimeSpan = calendarEvent.getTimeSpan(timeZone)
-            val calendarEventDurationInMinutes = calendarEvent.getDurationInMinutes(timeZone)
-            return Event(
-                id = calendarEvent.id,
-                startTimeGrain = TimeGrain(calendarEventTimeSpan.start),
-                durationInTimeGrains = calendarEventDurationInMinutes / TimeGrain.TIME_GRAIN_RESOLUTION,
-                type = calendarEvent.getCalendarEventType(),
-                originalCalendarEvent = calendarEvent,
-                owner = calendarEvent.owner
-            )
-        }
-    }
-
     @PlanningPin
     fun isPinned(): Boolean {
         return type == CalendarEventType.EXTERNAL_EVENT
@@ -67,7 +56,7 @@ class Event(
         }
     }
 
-    fun computeOverlapInMinutes(other: Event): Int {
+    fun computeOverlapInMinutes(other: OptimizerEvent): Int {
         val overlapStart = maxOf(getStartTime(), other.getStartTime())
         val overlapEnd = minOf(getEndTime(), other.getEndTime())
         return if (overlapStart < overlapEnd) {
@@ -97,6 +86,7 @@ class Event(
         return listOf(0) + when (type) {
             // Focus time are minimum 2 hours up to 8 hours
             CalendarEventType.FOCUS_TIME -> (8..24).map { it }
+            CalendarEventType.PERSONAL_TASK -> (1..24).map { it }
             else -> throw IllegalStateException("Duration in time grains range not defined for event type $type")
         }
     }

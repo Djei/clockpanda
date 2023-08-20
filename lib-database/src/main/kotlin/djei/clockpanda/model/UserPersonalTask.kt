@@ -2,6 +2,7 @@ package djei.clockpanda.model
 
 import djei.clockpanda.UUIDSerializer
 import djei.clockpanda.jooq.tables.records.UserPersonalTaskRecord
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaInstant
 import kotlinx.datetime.toKotlinInstant
@@ -48,6 +49,10 @@ data class UserPersonalTask(
             lastUpdatedAt = lastUpdatedAt?.toJavaInstant()?.atOffset(ZoneOffset.UTC)
         )
     }
+
+    fun isActive(): Boolean {
+        return metadata.isActive()
+    }
 }
 
 @Serializable
@@ -65,6 +70,12 @@ sealed interface UserPersonalTaskMetadata {
     private fun toJson() = json.encodeToString(this)
 
     fun toJooqData() = toJson().toByteArray(Charsets.UTF_8)
+
+    fun isActive(): Boolean {
+        return when (this) {
+            is OneOffTask -> currentScheduledAt == null || currentScheduledAt > Clock.System.now()
+        }
+    }
 
     /**
      * Here be dragons!!
