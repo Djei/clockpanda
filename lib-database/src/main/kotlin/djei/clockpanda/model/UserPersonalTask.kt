@@ -19,7 +19,6 @@ data class UserPersonalTask(
     val userEmail: String,
     val title: String,
     val description: String,
-    val priority: Int,
     val metadata: UserPersonalTaskMetadata,
     val createdAt: Instant,
     val lastUpdatedAt: Instant?
@@ -31,7 +30,6 @@ data class UserPersonalTask(
                 userEmail = record.userEmail!!,
                 title = record.title!!,
                 description = record.description ?: "",
-                priority = record.priority!!,
                 metadata = UserPersonalTaskMetadata.fromJooqData(record.metadata!!),
                 createdAt = record.createdAt!!.toInstant().toKotlinInstant(),
                 lastUpdatedAt = record.lastUpdatedAt?.toInstant()?.toKotlinInstant()
@@ -45,7 +43,6 @@ data class UserPersonalTask(
             userEmail = userEmail,
             title = title,
             description = description,
-            priority = priority,
             metadata = metadata.toJooqData(),
             createdAt = createdAt.toJavaInstant().atOffset(ZoneOffset.UTC),
             lastUpdatedAt = lastUpdatedAt?.toJavaInstant()?.atOffset(ZoneOffset.UTC)
@@ -80,27 +77,19 @@ sealed interface UserPersonalTaskMetadata {
         val oneOffTaskDurationInMinutes: Int,
         val timeRange: LocalTimeSpan,
         val isTimeRangeStrict: Boolean,
-        val isWithinWorkingHours: Boolean
+        val isHighPriority: Boolean,
+        val currentScheduledAt: Instant? = null
     ) : UserPersonalTaskMetadata
 
+    // Weekly task that can be spread out throughout the week in multiple instances
+    // as long as we meet the weekly target and each instance respects the configured min/max duration
     @Serializable
-    @SerialName("Daily")
-    data class DailyTask(
-        val dailyTargetAmountInMinutes: Int,
-        val timeRange: LocalTimeSpan,
-        val isTimeRangeStrict: Boolean,
-        val isWithinWorkingHours: Boolean
-    ) : UserPersonalTaskMetadata
-
-    @Serializable
-    @SerialName("Weekly")
-    data class WeeklyTask(
+    @SerialName("WeeklySpread")
+    data class WeeklySpreadTask(
         val weeklyTargetAmountInMinutes: Int,
-        val maxInstancePerWeek: Int,
         val minInstanceDurationInMinutes: Int,
         val maxInstanceDurationInMinutes: Int,
         val timeRange: LocalTimeSpan,
-        val isTimeRangeStrict: Boolean,
-        val isWithinWorkingHours: Boolean
+        val isTimeRangeStrict: Boolean
     ) : UserPersonalTaskMetadata
 }

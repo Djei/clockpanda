@@ -33,7 +33,6 @@ class UserPersonalTaskRepository {
         return Either.catch {
             ctx.selectFrom(USER_PERSONAL_TASK)
                 .where(USER_PERSONAL_TASK.USER_EMAIL.eq(userEmail))
-                .orderBy(USER_PERSONAL_TASK.PRIORITY.asc())
                 .fetch()
                 .map { UserPersonalTask.fromJooqRecord(it) }
         }.mapLeft {
@@ -62,6 +61,20 @@ class UserPersonalTaskRepository {
                 )
                 .execute()
             getById(ctx, userPersonalTask.id).getOrElse { throw it }!!
+        }.mapLeft {
+            UserPersonalTaskRepositoryError.DatabaseError(it)
+        }
+    }
+
+    fun deletePersonalTask(
+        ctx: TransactionalContext,
+        id: UUID
+    ): Either<UserPersonalTaskRepositoryError, Unit> {
+        return Either.catch {
+            ctx.deleteFrom(USER_PERSONAL_TASK)
+                .where(USER_PERSONAL_TASK.ID.eq(id))
+                .execute()
+            Unit
         }.mapLeft {
             UserPersonalTaskRepositoryError.DatabaseError(it)
         }

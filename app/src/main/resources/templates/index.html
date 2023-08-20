@@ -12,53 +12,122 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css" rel="stylesheet">
     <script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-700">
+<body class="bg-gray-300 text-gray-700">
     <div class="flex items-center justify-center h-screen mx-auto unauthenticated">
         <a href="/oauth2/authorization/google">Login with Google</a>
     </div>
     <div class="flex items-center justify-center h-screen authenticated" style="display:none">
-        <div class="relative bg-white p-8 rounded-lg shadow-md w-96">
+        <div class="relative bg-gray-50 p-8 rounded-lg shadow-md w-3/4 max-w-5xl">
             <a href="#" class="absolute top-0 right-0 p-2 text-blue-500 hover:text-blue-700" onClick="logout()">Logout</a>
-            <h1 class="text-2xl font-semibold mb-4">Your Preferences</h1>
+            <h1 class="text-2xl font-semibold mb-4">Your Settings</h1>
             <form id="preferences-form">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium">Preferred Timezone</label>
-                    <select class="mt-1 p-2 w-full border rounded-md" id="preferred_time_zone" name="preferred_time_zone">
-                        <option selected>Please select timezone</option>
-                        <option th:each="timeZone : ${availableTimeZones}" th:value="${timeZone}" th:text="${timeZone}"></option>
-                    </select>
+                <div class="flex divide-x divide-solid">
+                    <div class="w-1/3 p-2">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium">Preferred Timezone</label>
+                            <select class="mt-1 p-2 w-full border rounded-md bg-white" id="preferred_time_zone" name="preferred_time_zone">
+                                <option selected>Please select timezone</option>
+                                <option th:each="timeZone : ${availableTimeZones}" th:value="${timeZone}" th:text="${timeZone}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium">Working Hours</label>
+                            <th:block th:each="dayOfWeek : ${availableDays}">
+                                <label class="block text-xs text-gray-500" th:text="${#strings.toLowerCase(dayOfWeek)}"></label>
+                                <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" th:id="${dayOfWeek} + '_start'" th:name="${dayOfWeek} + '_start'">
+                                    <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                                </select>
+                                <label class="label text-xs text-gray-500">until</label>
+                                <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" th:id="${dayOfWeek} + '_end'" th:name="${dayOfWeek} + '_end'">
+                                    <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                                </select>
+                            </th:block>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium">Focus Time</label>
+                            <label class="block text-xs text-gray-500">Target (in hours)</label>
+                            <input type="number" id="focus_time" name="focus_time" class="mt-1 p-2 w-full border rounded-md" placeholder="Enter focus time e.g. 10">
+                            <label class="block text-xs text-gray-500">Preferred focus time range (min 2 hours)</label>
+                            <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" id="preferred_focus_time_range_start" name="preferred_focus_time_range_start">
+                                <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                            </select>
+                            <label class="label text-xs text-gray-500">until</label>
+                            <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" id="preferred_focus_time_range_end" name="preferred_focus_time_range_end">
+                                <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="email" name="email"/>
+                        <div class="flex justify-center">
+                            <button type="button" id="submit_button" class="w-96 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600" onClick="savePreferences()">
+                                Save Preferences
+                            </button>
+                        </div>
+                    </div>
+                    <div class="w-2/3 p-2">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium">
+                                Task List -
+                                <a href="#" class="text-blue-500 text-xs hover:text-blue-700" onClick="openSaveTaskModal('add', null)">
+                                    Add Task
+                                </a>
+                            </label>
+                            <ul id="task_list"></ul>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium">Working Hours</label>
-                    <th:block th:each="dayOfWeek : ${availableDays}">
-                        <label class="block text-xs text-gray-500" th:text="${#strings.toLowerCase(dayOfWeek)}"></label>
-                        <select class="mt-1 p-2 w-1/3 border rounded-md" th:id="${dayOfWeek} + '_start'" th:name="${dayOfWeek} + '_start'">
-                            <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
-                        </select>
-                        <label class="label text-xs text-gray-500">until</label>
-                        <select class="mt-1 p-2 w-1/3 border rounded-md" th:id="${dayOfWeek} + '_end'" th:name="${dayOfWeek} + '_end'">
-                            <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
-                        </select>
-                    </th:block>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium">Focus Time</label>
-                    <label class="block text-xs text-gray-500">Target (in hours)</label>
-                    <input type="number" id="focus_time" name="focus_time" class="mt-1 p-2 w-full border rounded-md" placeholder="Enter focus time e.g. 10">
-                    <label class="block text-xs text-gray-500">Preferred focus time range (min 2 hours)</label>
-                    <select class="mt-1 p-2 w-1/3 border rounded-md" id="preferred_focus_time_range_start" name="preferred_focus_time_range_start">
-                        <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
-                    </select>
-                    <label class="label text-xs text-gray-500">until</label>
-                    <select class="mt-1 p-2 w-1/3 border rounded-md" id="preferred_focus_time_range_end" name="preferred_focus_time_range_end">
-                        <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
-                    </select>
-                </div>
-                <input type="hidden" id="email" name="email"/>
-                <button type="button" id="submit_button" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600" onClick="savePreferences()">
-                    Submit
-                </button>
             </form>
+        </div>
+    </div>
+    <div id="task_modal" class="fixed left-0 top-0 flex h-full w-full items-center justify-center bg-black bg-opacity-50 py-10" style="display:none;">
+        <div class="max-h-full w-full max-w-xl overflow-y-auto sm:rounded-xl bg-white">
+            <div class="w-full">
+                <div class="max-w-4xl mx-auto p-4">
+                    <div class="mb-8">
+                        <h1 id="task_modal_title" class="mb-4 text-2xl font-extrabold">Add Task</h1>
+                        <div class="divide-y divide-solid">
+                            <div class="mb-4 p-2">
+                                <label class="block text-sm font-medium">Name</label>
+                                <input type="text" id="modal_task_name" name="modal_task_name" class="mt-1 p-2 w-full border rounded-md" placeholder="e.g. Do taxes">
+                            </div>
+                            <div class="mb-4 p-2">
+                                <label class="block text-sm font-medium">Task settings</label>
+                                <div id="modal_one_off_task_properties" class="py-2">
+                                    <input type="hidden" id="modal_one_off_task_id" name="modal_one_off_task_id"/>
+                                    <input type="hidden" id="modal_one_off_task_created_at" name="modal_one_off_task_created_at"/>
+                                    <label class="block text-xs text-gray-500">Duration (in minutes)</label>
+                                    <input type="number" id="modal_one_off_task_duration" name="modal_one_off_task_duration" class="mt-1 p-2 w-full border rounded-md" placeholder="e.g. 120">
+                                    <label class="block text-xs text-gray-500 mt-1">Preferred time range</label>
+                                    <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" id="modal_one_off_task_time_range_start" name="modal_one_off_task_time_range_start">
+                                        <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                                    </select>
+                                    <label class="label text-xs text-gray-500">until</label>
+                                    <select class="mt-1 p-2 w-1/3 border rounded-md bg-white" id="modal_one_off_task_time_range_end" name="modal_one_off_task_time_range_end">
+                                        <option th:each="availableTime : ${availableTimes}" th:text="${availableTime}" th:value="${availableTime}"></option>
+                                    </select>
+                                    <div class="mt-2">
+                                        <label class="text-xs text-gray-500">
+                                            <input type="checkbox" id="modal_one_off_task_is_time_range_strict" name="modal_one_off_task_is_time_range_strict">
+                                            is time range strict?
+                                        </label>
+                                        <label class="text-xs text-gray-500 ml-2">
+                                            <input type="checkbox" id="modal_one_off_task_is_high_priority" name="modal_one_off_task_is_high_priority">
+                                            is high priority?
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-center p-2">
+                            <button type="button" id="modal_task_add_button" class="w-1/3 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 mr-2" onclick="saveTask()">
+                                Save task
+                            </button>
+                            <button type="button" id="modal_task_close_button" class="w-1/3 bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600" onclick="$('#task_modal').hide()">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script type="text/javascript">
@@ -74,6 +143,21 @@
             }
           }
         });
+
+        async function doAjax(url, method, params, errorMessage = "Unknown error. Please try again") {
+            try {
+                let result = await $.ajax({
+                  url: url,
+                  type: method,
+                  dataType: 'json',
+                  data: JSON.stringify(params),
+                  contentType: 'application/json'
+                });
+                return result;
+            } catch (error) {
+                alert(errorMessage);
+            }
+        }
 
         $.get("/user", function(data) {
             $("#email").val(data.email);
@@ -103,6 +187,93 @@
             $(".unauthenticated").hide();
             $(".authenticated").show();
         });
+
+        var openSaveTaskModal = function(mode, task_id) {
+            if (mode == 'add') {
+                $("#task_modal_title").html("Add Task");
+                $('#modal_task_name').val('');
+                $('#modal_one_off_duration_task_property').val('');
+                $('#modal_one_off_time_range_start_task_property').val('09:00');
+                $('#modal_one_off_time_range_end_task_property').val('17:00');
+                $('#modal_one_off_is_time_range_strict_task_property').prop('checked', false);
+                $('#modal_one_off_is_high_priority_task_property').prop('checked', false);
+            } else {
+                let task = global_tasks.find(task => task.id == task_id);
+                $("#task_modal_title").html("Edit Task");
+                $('#modal_one_off_task_id').val(task_id);
+                $('#modal_one_off_created_at').val(task.created_at);
+                $('#modal_task_name').val(task.title);
+                $('#modal_one_off_task_duration').val(task.metadata.oneOffTaskDurationInMinutes);
+                $('#modal_one_off_task_time_range_start').val(task.metadata.timeRange.start);
+                $('#modal_one_off_task_time_range_end').val(task.metadata.timeRange.end);
+                $('#modal_one_off_task_is_time_range_strict').prop('checked', task.metadata.isTimeRangeStrict);
+                $('#modal_one_off_task_is_high_priority').prop('checked', task.metadata.isHighPriority);
+            }
+            $('#task_modal').show();
+        }
+
+        var saveTask = async function() {
+            let putPersonalTaskRequest = {
+                id: $('#modal_one_off_task_id').val() == "" ? null : $('#modal_one_off_task_id').val(),
+                email: $("#email").val(),
+                title: $('#modal_task_name').val(),
+                description: "",
+                metadata: {
+                    type: "OneOff",
+                    oneOffTaskDurationInMinutes: $('#modal_one_off_task_duration').val(),
+                    timeRange: {
+                        start: $('#modal_one_off_task_time_range_start').val(),
+                        end: $('#modal_one_off_task_time_range_end').val(),
+                    },
+                    isTimeRangeStrict: $('#modal_one_off_task_is_time_range_strict').is(":checked"),
+                    isHighPriority: $('#modal_one_off_task_is_high_priority').is(":checked")
+                },
+                createdAt: $('#modal_one_off_task_created_at').val() == "" ? (new Date()).toISOString() : $('#modal_one_off_task_created_at').val()
+            }
+            await doAjax("/user/personalTask", "PUT", putPersonalTaskRequest)
+            await refreshUserPersonalTasks();
+            $('#task_modal').hide();
+        }
+
+        var deleteTask = async function(taskId) {
+            let deletePersonalTaskRequest = {
+                id: taskId
+            }
+            await doAjax("/user/personalTask", "DELETE", deletePersonalTaskRequest)
+            refreshUserPersonalTasks();
+        }
+
+        var refreshUserPersonalTasks = async function() {
+            var getPersonalTaskCardHtml = function(task) {
+                let html = "<div class='flex flex-col'>";
+                html += "<div class='text-m'>" + task.title + "</div>";
+                html += "<div class='text-xs ml-2'>Duration: "+task.metadata.oneOffTaskDurationInMinutes+" minutes</div>";
+                html += "<div class='text-xs ml-2'>Time range: "+task.metadata.timeRange.start+" until "+task.metadata.timeRange.end+"</div>";
+                if (task.metadata.isTimeRangeStrict) {
+                    html += "<div class='text-xs ml-2'>Time range is strict</div>";
+                }
+                if (task.metadata.isHighPriority) {
+                    html += "<div class='text-xs ml-2'>High priority</div>";
+                }
+                if (task.metadata.currentScheduledAt) {
+                    html += "<div class='text-xs ml-2'>Currently scheduled for: "+task.metadata.currentScheduledAt+"</div>";
+                }
+                html += "</div>";
+                return html;
+            }
+            var getPersonalTaskActionHtml = function(task) {
+                return "<div><a href='#' class='text-blue-500 text-xs hover:text-blue-700' onClick='openSaveTaskModal(\"edit\", \"" + task.id + "\")'>Edit</a><a href='#' class='text-blue-500 text-xs hover:text-blue-700 ml-2' onClick='deleteTask(\"" + task.id + "\")'>Delete</a></div>"
+            }
+
+            $.get("/user/personalTask", function(data) {
+                $("#task_list").empty();
+                global_tasks = data.userPersonalTasks
+                $.each(data.userPersonalTasks, function(index, task) {
+                    $("#task_list").append("<li class='flex justify-between items-center p-2 border-b border-gray-200'>" + getPersonalTaskCardHtml(task) + getPersonalTaskActionHtml(task) + "</li>")
+                });
+            });
+        }
+        refreshUserPersonalTasks();
 
         var logout = function() {
             $.post("/logout", function() {
