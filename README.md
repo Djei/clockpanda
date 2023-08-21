@@ -10,7 +10,7 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 - [planned] Self-hosting
 - [planned] Data encryption at rest
 - [beta] Automatically schedule and protect focus times when you do deep work without any interruptions
-- [in progress] Prioritized task list: let Clock Panda automatically schedule tasks from your task list
+- [beta] Task list: define personal todo tasks and let Clock Panda schedule them for you
 - [planned] Analytics
 - [planned] Team schedule optimization
 
