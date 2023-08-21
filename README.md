@@ -1,7 +1,7 @@
 # Clock Panda
-Clock Panda is an open source implementation of a schedule management and optimization system.
+[Clock Panda](https://github.com/Djei/clockpanda) is an open source implementation of a schedule management and optimization system.
 
-The goal is to allow users to connect their work calendar and let Clock Panda automatically optimize their schedule by creating blocks for lunch, dinner, breaks and focus time.
+The goal is to allow users to connect their work calendar and let Clock Panda automatically optimize their schedule by creating blocks for personal tasks and focus time.
 
 ---
 # Planned features and supported calendar platforms
@@ -73,12 +73,12 @@ This project is split into multiple gradle subprojects:
 - `lib-xxx` are modules containing simply library code e.g. database access, data models
 ## Commit messages
 Commit messages must be prefixed with one of the following tags:
-- [feature]: for commits implementing new features
-- [fix]: for commits fixing bugs
-- [opex]: for commits improving operational excellence e.g. security, logging, performance, monitoring
-- [devex]: for commits improving developer experience e.g. build, test, CI/CD
-- [codeclean]: for commits cleaning up code e.g. linting, variable renames
-- [doc]: for commits updating documentation
+- `[feature]`: for commits implementing new features
+- `[fix]`: for commits fixing bugs
+- `[opex]`: for commits improving operational excellence e.g. security, logging, performance, monitoring
+- `[devex]`: for commits improving developer experience e.g. build, test, CI/CD
+- `[codeclean]`: for commits cleaning up code e.g. linting, variable renames
+- `[doc]`: for commits updating documentation
 
 Avoid using multiple tags for the same commit. The tag list is roughly ordered by priority if you need to use multiple tags.
 ## Testing before pushing
