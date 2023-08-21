@@ -6,21 +6,21 @@ The goal is to allow users to connect their work calendar and let Clock Panda au
 ---
 # Planned features and supported calendar platforms
 ## Features
-- [beta] Local personal usage
-- [planned] Self-hosting
-- [planned] Data encryption at rest
-- [beta] Automatically schedule and protect focus times when you do deep work without any interruptions
-- [beta] Task list: define personal todo tasks and let Clock Panda schedule them for you
-- [planned] Analytics
-- [planned] Team schedule optimization
+- `[beta]` Local personal usage
+- `[planned]` Self-hosting
+- `[planned]` Data encryption at rest
+- `[beta]` Automatically schedule and protect focus times when you do deep work without any interruptions
+- `[beta]` Task list: define personal todo tasks and let Clock Panda schedule them for you
+- `[planned]` Analytics
+- `[planned]` Team schedule optimization
 
-[planned]: This is on the roadmap but not yet started. Prioritization may change
+`[planned]`: This is on the roadmap but not yet started. Prioritization may change
 
-[in progress]: This is actively being worked on
+`[in progress]`: This is actively being worked on
 
-[beta]: This is available but expect you should expect bugs and potential changes
+`[beta]`: This is available but expect you should expect bugs and potential changes
 
-[stable]: This is available and can be considered stable
+`[stable]`: This is available and can be considered stable
 
 ## Supported calendar platforms
 - Google Calendar
