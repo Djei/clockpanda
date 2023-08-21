@@ -344,7 +344,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                     any(),
                     any(),
                     eq(CalendarEventType.PERSONAL_TASK),
-                    anyOrNull()
+                    eq(OptimizerEventFixtures.personalTaskToBeCreated.userPersonalTask!!.id.toString())
                 )
                 verify(googleCalendarApiFacade, never()).deleteCalendarEvent(
                     any(),

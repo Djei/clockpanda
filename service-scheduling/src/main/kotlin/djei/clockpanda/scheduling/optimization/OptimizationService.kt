@@ -13,7 +13,6 @@ import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.model.User
 import djei.clockpanda.model.UserPersonalTask
-import djei.clockpanda.model.UserPersonalTaskMetadata
 import djei.clockpanda.model.UserPreferences
 import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
@@ -138,9 +137,7 @@ class OptimizationService(
                     title = it.title,
                     originalCalendarEvent = it,
                     owner = it.owner,
-                    personalTaskId = null,
-                    personalTaskTargetDurationInMinutes = null,
-                    isHighPriorityPersonalTask = null
+                    userPersonalTask = null
                 )
             }
     }
@@ -164,9 +161,7 @@ class OptimizationService(
                     title = it.title,
                     originalCalendarEvent = it,
                     owner = it.owner,
-                    personalTaskId = null,
-                    personalTaskTargetDurationInMinutes = null,
-                    isHighPriorityPersonalTask = null
+                    userPersonalTask = null
                 )
             }
         // We artificially ensure to have enough focus time event planning entities to be optimized by the solver
@@ -181,9 +176,7 @@ class OptimizationService(
                 durationInTimeGrains = 0,
                 originalCalendarEvent = null,
                 owner = user.email,
-                personalTaskId = null,
-                personalTaskTargetDurationInMinutes = null,
-                isHighPriorityPersonalTask = null
+                userPersonalTask = null
             )
         }
         return existingFocusTimeOptimizerEvents + extraFocusTimesToOptimize
@@ -226,9 +219,7 @@ class OptimizationService(
                     title = activeUserPersonalTask.title,
                     originalCalendarEvent = null,
                     owner = user.email,
-                    personalTaskId = activeUserPersonalTask.id.toString(),
-                    personalTaskTargetDurationInMinutes = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).oneOffTaskDurationInMinutes,
-                    isHighPriorityPersonalTask = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).isHighPriority
+                    userPersonalTask = activeUserPersonalTask
                 )
             } else {
                 val calendarEventTimeSpan = existingPersonalTask.getTimeSpan(userPreferences.preferredTimeZone)
@@ -243,9 +234,7 @@ class OptimizationService(
                     title = existingPersonalTask.title,
                     originalCalendarEvent = existingPersonalTask,
                     owner = existingPersonalTask.owner,
-                    personalTaskId = existingPersonalTask.personalTaskId,
-                    personalTaskTargetDurationInMinutes = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).oneOffTaskDurationInMinutes,
-                    isHighPriorityPersonalTask = (activeUserPersonalTask.metadata as UserPersonalTaskMetadata.OneOffTask).isHighPriority
+                    userPersonalTask = activeUserPersonalTask
                 )
             }
         }.right()
@@ -358,11 +347,19 @@ class OptimizationService(
                 startTime = it.getStartTime(),
                 endTime = it.getEndTime(),
                 calendarEventType = CalendarEventType.PERSONAL_TASK,
-                personalTaskId = it.personalTaskId
+                personalTaskId = it.userPersonalTask!!.id.toString()
             ).getOrElse {
                 return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
             }
-            // TODO update currently scheduled for on personal task metadata
+            transactionManager.transaction { ctx ->
+                userPersonalTaskRepository.updateOneOffPersonalTaskCurrentScheduledAt(
+                    ctx,
+                    it.userPersonalTask.id,
+                    it.getStartTime()
+                )
+            }.getOrElse {
+                return OptimizationServiceError.UserPersonalTaskRepositoryError(it).left()
+            }
         }
         return Unit.right()
     }
@@ -391,7 +388,15 @@ class OptimizationService(
                     ).getOrElse {
                         return OptimizationServiceError.GoogleCalendarApiFacadeError(it).left()
                     }
-                    // TODO update currently scheduled for on personal task metadata
+                    transactionManager.transaction { ctx ->
+                        userPersonalTaskRepository.updateOneOffPersonalTaskCurrentScheduledAt(
+                            ctx,
+                            it.userPersonalTask!!.id,
+                            it.getStartTime()
+                        )
+                    }.getOrElse {
+                        return OptimizationServiceError.UserPersonalTaskRepositoryError(it).left()
+                    }
                 } else {
                     logger.info("No change detected for personal task event for user ${user.email}: ${it.originalCalendarEvent!!.id}")
                 }

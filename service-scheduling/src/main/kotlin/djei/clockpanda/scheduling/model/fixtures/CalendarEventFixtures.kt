@@ -1,6 +1,7 @@
 package djei.clockpanda.scheduling.model.fixtures
 
 import djei.clockpanda.model.CalendarProvider
+import djei.clockpanda.model.fixtures.UserPersonalTaskFixtures
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventAttendanceStatus
 import djei.clockpanda.scheduling.model.CalendarEventAttendee
@@ -133,7 +134,7 @@ class CalendarEventFixtures {
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
             ),
-            personalTaskId = "f5dacfce-7439-4269-9367-59404de69b20"
+            personalTaskId = UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.id.toString()
         )
 
         val personalTaskCalendarEvent2 = InstantCalendarEvent(
@@ -154,7 +155,7 @@ class CalendarEventFixtures {
                     attendanceStatus = CalendarEventAttendanceStatus.ACCEPTED
                 )
             ),
-            personalTaskId = "4b12d7c8-e2bc-4555-95fc-7f0b0ca320dd"
+            personalTaskId = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask.id.toString()
         )
     }
 }

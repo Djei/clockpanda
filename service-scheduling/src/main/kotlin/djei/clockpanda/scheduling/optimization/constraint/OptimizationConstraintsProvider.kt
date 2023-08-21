@@ -7,6 +7,7 @@ import ai.timefold.solver.core.api.score.stream.ConstraintFactory
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider
 import ai.timefold.solver.core.api.score.stream.Joiners
 import djei.clockpanda.model.User
+import djei.clockpanda.model.UserPersonalTaskMetadata
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
 import djei.clockpanda.scheduling.optimization.model.OptimizationProblem
@@ -16,15 +17,16 @@ import kotlinx.datetime.atDate
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.abs
+import kotlin.time.DurationUnit
 
 class OptimizationConstraintsProvider : ConstraintProvider {
     override fun defineConstraints(constraintFactory: ConstraintFactory): Array<Constraint> {
         return arrayOf(
             // 1. Hard constraint: Clock Panda events should NOT overlap with other events - penalty proportional to overlap
             clockPandaEventsShouldNotOverlapWithOtherEvents(constraintFactory),
-            // 2. Hard constraint: Clock Panda should NOT be outside user working hours - penalty proportional to amount outside
+            // 2. Hard constraint: Clock Panda events should NOT be outside user working hours - penalty proportional to amount outside
             clockPandaEventsShouldNotBeOutsideOfWorkingHours(constraintFactory),
-            // 3. Hard constraint: Clock Panda should start and end on the same day - fixed penalty per event
+            // 3. Hard constraint: Clock Panda events should start and end on the same day - fixed penalty per event
             clockPandaEventsShouldStartAndEndOnTheSameDay(constraintFactory),
             // 4. Hard constraint: Personal task should have exactly their specified duration - penalty proportional to difference
             personalTasksShouldHaveExactlyTheirTargetDuration(constraintFactory),
@@ -45,8 +47,12 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             existingFocusTimeShouldOnlyBeMovedIfTheyGiveMoreFocusTime(constraintFactory),
             // 8. Soft constraint: Focus time events should be within preferred focus time range - penalty proportional to amount outside
             focusTimeShouldBeWithinPreferredFocusTimeRange(constraintFactory),
-            // 9. Soft constraint: Focus time should be scheduled on the hour or half hour - fixed penalty per event
-            focusTimesShouldBeScheduledOnTheHourOrHalfHour(constraintFactory)
+            // 9. Soft constraint: Clock Panda events should be scheduled on the hour or half hour - fixed penalty per event
+            clockPandaEventsShouldBeScheduledOnTheHourOrHalfHour(constraintFactory),
+            // 10. Soft constraint: Personal tasks should be within preferred time range - penalty proportional to amount outside
+            personalTaskShouldBeWithinPreferredTimeRange(constraintFactory),
+            // 11. Soft constraint: Personal tasks should be as soon as possible - penalty proportional to how far they are in the future and if they are high priority
+            personalTaskShouldBeScheduledAsSoonAsPossible(constraintFactory)
         )
     }
 
@@ -123,7 +129,9 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .penalize(HardMediumSoftScore.ONE_HARD) { e ->
-                val missingInMinutes = abs(e.personalTaskTargetDurationInMinutes!! - e.getDurationInMinutes())
+                val metadata = (e.userPersonalTask!!.metadata as UserPersonalTaskMetadata.OneOffTask)
+                val targetDuration = metadata.oneOffTaskDurationInMinutes
+                val missingInMinutes = abs(targetDuration - e.getDurationInMinutes())
                 missingInMinutes
             }
             .asConstraint("Personal tasks should have exactly their target duration")
@@ -133,8 +141,11 @@ class OptimizationConstraintsProvider : ConstraintProvider {
         return factory.forEach(OptimizerEvent::class.java)
             .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
             .penalize(HardMediumSoftScore.ONE_MEDIUM) { e ->
-                val missingInMinutes = abs(e.personalTaskTargetDurationInMinutes!! - e.getDurationInMinutes())
-                if (e.isHighPriorityPersonalTask!!) {
+                val metadata = (e.userPersonalTask!!.metadata as UserPersonalTaskMetadata.OneOffTask)
+                val targetDuration = metadata.oneOffTaskDurationInMinutes
+                val isHighPriority = metadata.isHighPriority
+                val missingInMinutes = abs(targetDuration - e.getDurationInMinutes())
+                if (isHighPriority) {
                     missingInMinutes * 24000
                 } else {
                     missingInMinutes * 1200
@@ -234,9 +245,9 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             .asConstraint("Focus time events should be within preferred focus time range")
     }
 
-    fun focusTimesShouldBeScheduledOnTheHourOrHalfHour(factory: ConstraintFactory): Constraint {
+    fun clockPandaEventsShouldBeScheduledOnTheHourOrHalfHour(factory: ConstraintFactory): Constraint {
         return factory.forEach(OptimizerEvent::class.java)
-            .filter { e -> e.type == CalendarEventType.FOCUS_TIME }
+            .filter { e -> e.type != CalendarEventType.EXTERNAL_EVENT }
             .filter { e -> e.getDurationInMinutes() > 0 }
             .join(
                 User::class.java,
@@ -248,5 +259,56 @@ class OptimizationConstraintsProvider : ConstraintProvider {
             }
             .penalize(HardMediumSoftScore.ONE_SOFT)
             .asConstraint("Focus time should be scheduled on the hour or half hour")
+    }
+
+    fun personalTaskShouldBeWithinPreferredTimeRange(factory: ConstraintFactory): Constraint {
+        return factory.forEach(OptimizerEvent::class.java)
+            .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .join(
+                User::class.java,
+                Joiners.equal(OptimizerEvent::owner, User::email)
+            )
+            .penalize(HardMediumSoftScore.ONE_SOFT) { event, user ->
+                val userPreferences = user.preferences!!
+                val userPreferredTimeZone = userPreferences.preferredTimeZone
+                val eventLocalStartTime = event.getStartTime().toLocalDateTime(userPreferredTimeZone)
+                val metadata = (event.userPersonalTask!!.metadata as UserPersonalTaskMetadata.OneOffTask)
+                val preferredTimeRange = metadata.timeRange.let {
+                    TimeSpan(
+                        start = it.start.atDate(eventLocalStartTime.date).toInstant(userPreferredTimeZone),
+                        end = it.end.atDate(eventLocalStartTime.date).toInstant(userPreferredTimeZone)
+                    )
+                }
+                event.computeOutsideRangeInMinutes(preferredTimeRange)
+            }
+            .asConstraint("Personal tasks should be within preferred time range")
+    }
+
+    fun personalTaskShouldBeScheduledAsSoonAsPossible(factory: ConstraintFactory): Constraint {
+        return factory.forEach(OptimizerEvent::class.java)
+            .filter { e -> e.type == CalendarEventType.PERSONAL_TASK }
+            .filter { e -> e.getDurationInMinutes() > 0 }
+            .join(OptimizationProblem.OptimizationProblemParameters::class.java)
+            .join(
+                User::class.java,
+                Joiners.equal({ e, _ -> e.owner }, User::email)
+            )
+            .penalize(HardMediumSoftScore.ONE_SOFT) { event, problemParameters, user ->
+                val userPreferences = user.preferences!!
+                val userPreferredTimeZone = userPreferences.preferredTimeZone
+                problemParameters.planningEntityOptimizationRange.start.toLocalDateTime(userPreferredTimeZone)
+                val metadata = (event.userPersonalTask!!.metadata as UserPersonalTaskMetadata.OneOffTask)
+                val penalty = abs(
+                    (event.getStartTime() - problemParameters.planningEntityOptimizationRange.start)
+                        .toInt(DurationUnit.MINUTES)
+                )
+                if (metadata.isHighPriority) {
+                    penalty * 2
+                } else {
+                    penalty
+                }
+            }
+            .asConstraint("Personal tasks should be scheduled as soon as possible")
     }
 }

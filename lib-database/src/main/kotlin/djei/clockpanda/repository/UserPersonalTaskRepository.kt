@@ -4,6 +4,7 @@ import arrow.core.Either
 import arrow.core.getOrElse
 import djei.clockpanda.jooq.tables.references.USER_PERSONAL_TASK
 import djei.clockpanda.model.UserPersonalTask
+import djei.clockpanda.model.UserPersonalTaskMetadata
 import djei.clockpanda.transaction.TransactionalContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -61,6 +62,33 @@ class UserPersonalTaskRepository {
                 )
                 .execute()
             getById(ctx, userPersonalTask.id).getOrElse { throw it }!!
+        }.mapLeft {
+            UserPersonalTaskRepositoryError.DatabaseError(it)
+        }
+    }
+
+    fun updateOneOffPersonalTaskCurrentScheduledAt(
+        ctx: TransactionalContext,
+        personalTaskId: UUID,
+        newCurrentScheduledAt: Instant
+    ): Either<UserPersonalTaskRepositoryError, Unit> {
+        return Either.catch {
+            val task = getById(ctx, personalTaskId)
+                .getOrElse { throw it }
+            if (task == null) {
+                Unit
+            } else {
+                val metadataWithUpdatedCurrentScheduledAt = (task.metadata as UserPersonalTaskMetadata.OneOffTask).copy(
+                    currentScheduledAt = newCurrentScheduledAt
+                )
+                val newTask = task.copy(
+                    metadata = metadataWithUpdatedCurrentScheduledAt,
+                    lastUpdatedAt = Clock.System.now()
+                )
+                upsertPersonalTask(ctx, newTask)
+                    .getOrElse { throw it }
+                Unit
+            }
         }.mapLeft {
             UserPersonalTaskRepositoryError.DatabaseError(it)
         }

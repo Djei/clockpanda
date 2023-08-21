@@ -39,6 +39,21 @@ class UserPersonalTaskFixtures {
             lastUpdatedAt = null
         )
 
+        val djei1OneOffReviewTechDesignUserPersonalTask = UserPersonalTask(
+            id = UUID.randomUUID(),
+            userEmail = "djei1@email.com",
+            title = "review tech design",
+            description = "description",
+            metadata = UserPersonalTaskMetadata.OneOffTask(
+                oneOffTaskDurationInMinutes = 60,
+                timeRange = LocalTimeSpan(LocalTime(9, 0), LocalTime(17, 0)),
+                isHighPriority = true,
+                isTimeRangeStrict = false
+            ),
+            createdAt = Clock.System.now(),
+            lastUpdatedAt = null
+        )
+
         val djei2OneOffReadPaperUserPersonalTask = UserPersonalTask(
             id = UUID.randomUUID(),
             userEmail = "djei2@email.com",

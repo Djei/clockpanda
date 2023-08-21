@@ -96,6 +96,7 @@
                                 <div id="modal_one_off_task_properties" class="py-2">
                                     <input type="hidden" id="modal_one_off_task_id" name="modal_one_off_task_id"/>
                                     <input type="hidden" id="modal_one_off_task_created_at" name="modal_one_off_task_created_at"/>
+                                    <input type="hidden" id="modal_one_off_task_current_scheduled_at" name="modal_one_off_task_current_scheduled_at"/>
                                     <label class="block text-xs text-gray-500">Duration (in minutes)</label>
                                     <input type="number" id="modal_one_off_task_duration" name="modal_one_off_task_duration" class="mt-1 p-2 w-full border rounded-md" placeholder="e.g. 120">
                                     <label class="block text-xs text-gray-500 mt-1">Preferred time range</label>
@@ -212,6 +213,7 @@
                 $("#task_modal_title").html("Add Task");
                 $('#modal_one_off_task_id').val('');
                 $('#modal_one_off_created_at').val('');
+                $('#modal_one_off_task_current_scheduled_at').val('');
                 $('#modal_task_name').val('');
                 $('#modal_one_off_task_duration').val('');
                 $('#modal_one_off_task_time_range_start').val('09:00');
@@ -223,6 +225,7 @@
                 $("#task_modal_title").html("Edit Task");
                 $('#modal_one_off_task_id').val(task_id);
                 $('#modal_one_off_created_at').val(task.created_at);
+                $('#modal_one_off_task_current_scheduled_at').val(task.metadata.currentScheduledAt);
                 $('#modal_task_name').val(task.title);
                 $('#modal_one_off_task_duration').val(task.metadata.oneOffTaskDurationInMinutes);
                 $('#modal_one_off_task_time_range_start').val(task.metadata.timeRange.start);
@@ -247,7 +250,8 @@
                         end: $('#modal_one_off_task_time_range_end').val(),
                     },
                     isTimeRangeStrict: $('#modal_one_off_task_is_time_range_strict').is(":checked"),
-                    isHighPriority: $('#modal_one_off_task_is_high_priority').is(":checked")
+                    isHighPriority: $('#modal_one_off_task_is_high_priority').is(":checked"),
+                    currentScheduledAt: $('#modal_one_off_task_current_scheduled_at').val() == "" ? null : $('#modal_one_off_task_current_scheduled_at').val()
                 },
                 createdAt: $('#modal_one_off_task_created_at').val() == "" ? (new Date()).toISOString() : $('#modal_one_off_task_created_at').val()
             }

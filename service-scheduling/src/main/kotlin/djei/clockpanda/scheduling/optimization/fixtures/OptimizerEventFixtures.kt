@@ -1,11 +1,13 @@
 package djei.clockpanda.scheduling.optimization.fixtures
 
+import djei.clockpanda.model.fixtures.UserPersonalTaskFixtures
 import djei.clockpanda.scheduling.model.CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.fixtures.CalendarEventFixtures
 import djei.clockpanda.scheduling.optimization.model.OptimizerEvent
 import djei.clockpanda.scheduling.optimization.model.TimeGrain
 import kotlinx.datetime.Instant
+import java.util.*
 
 class OptimizerEventFixtures {
     companion object {
@@ -17,9 +19,7 @@ class OptimizerEventFixtures {
             title = CalendarEventFixtures.externalTypeCalendarEvent.title,
             originalCalendarEvent = CalendarEventFixtures.externalTypeCalendarEvent,
             owner = "user1",
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         val updatedExistingFocusTime = OptimizerEvent(
             id = CalendarEventFixtures.focusTimeCalendarEvent1.id,
@@ -29,9 +29,7 @@ class OptimizerEventFixtures {
             title = CalendarEventFixtures.focusTimeCalendarEvent1.title,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent1,
             owner = "user1",
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         val noChangeExistingFocusTime = OptimizerEvent(
             id = CalendarEventFixtures.focusTimeCalendarEvent3.id,
@@ -41,9 +39,7 @@ class OptimizerEventFixtures {
             title = CalendarEventFixtures.focusTimeCalendarEvent3.title,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent3,
             owner = "user1",
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         val existingFocusTimeToBeDeleted = OptimizerEvent(
             id = CalendarEventFixtures.focusTimeCalendarEvent2.id,
@@ -53,9 +49,7 @@ class OptimizerEventFixtures {
             title = CalendarEventFixtures.focusTimeCalendarEvent2.title,
             originalCalendarEvent = CalendarEventFixtures.focusTimeCalendarEvent2,
             owner = "user1",
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         val newFocusTimeToBeCreated = OptimizerEvent(
             id = "new_focus_time_to_create",
@@ -65,9 +59,7 @@ class OptimizerEventFixtures {
             title = CLOCK_PANDA_FOCUS_TIME_EVENT_TITLE,
             originalCalendarEvent = null,
             owner = "user1",
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = UserPersonalTaskFixtures.djei1OneOffReviewTechDesignUserPersonalTask
         )
         val personalTaskToBeCreated = OptimizerEvent(
             id = "new_personal_task_to_create",
@@ -77,9 +69,7 @@ class OptimizerEventFixtures {
             title = "personal task",
             originalCalendarEvent = null,
             owner = "user1",
-            personalTaskId = "personal_task_id_1",
-            personalTaskTargetDurationInMinutes = 120,
-            isHighPriorityPersonalTask = false
+            userPersonalTask = UserPersonalTaskFixtures.djei1OneOffReviewTechDesignUserPersonalTask
         )
         val existingPersonalTaskToBeDeleted = OptimizerEvent(
             id = CalendarEventFixtures.personalTaskCalendarEvent1.id,
@@ -89,9 +79,7 @@ class OptimizerEventFixtures {
             title = "personal task",
             originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent1,
             owner = "user1",
-            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent1.personalTaskId,
-            personalTaskTargetDurationInMinutes = 120,
-            isHighPriorityPersonalTask = false
+            userPersonalTask = UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice
         )
         val updatedExistingPersonalTask = OptimizerEvent(
             id = CalendarEventFixtures.personalTaskCalendarEvent2.id,
@@ -101,9 +89,7 @@ class OptimizerEventFixtures {
             title = "personal task",
             originalCalendarEvent = CalendarEventFixtures.personalTaskCalendarEvent2,
             owner = "user1",
-            personalTaskId = CalendarEventFixtures.personalTaskCalendarEvent2.personalTaskId,
-            personalTaskTargetDurationInMinutes = 60,
-            isHighPriorityPersonalTask = true
+            userPersonalTask = UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
         )
     }
 }

@@ -23,9 +23,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
 
         // not overlapping before
@@ -39,9 +37,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(notOverlappingBefore)).isEqualTo(0)
 
@@ -56,9 +52,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(partiallyOverlappingBefore)).isEqualTo(60)
 
@@ -73,9 +67,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(partiallyOverlappingAfter)).isEqualTo(60)
 
@@ -90,9 +82,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 8,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(notOverlappingAfter)).isEqualTo(0)
 
@@ -107,9 +97,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 16,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(fullyContainsReference)).isEqualTo(120)
 
@@ -124,9 +112,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 4,
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
         assertThat(referenceOptimizerEvent.computeOverlapInMinutes(fullyContainedByReference)).isEqualTo(60)
     }
@@ -144,9 +130,7 @@ class OptimizerEventTest {
             durationInTimeGrains = 8, // End time: 2021-01-01T14:00:00Z
             originalCalendarEvent = null,
             owner = UserFixtures.djei2WithPreferences.email,
-            personalTaskId = null,
-            personalTaskTargetDurationInMinutes = null,
-            isHighPriorityPersonalTask = null
+            userPersonalTask = null
         )
 
         // not overlapping before

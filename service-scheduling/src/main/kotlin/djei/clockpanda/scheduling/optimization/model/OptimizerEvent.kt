@@ -5,6 +5,7 @@ import ai.timefold.solver.core.api.domain.entity.PlanningPin
 import ai.timefold.solver.core.api.domain.lookup.PlanningId
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable
+import djei.clockpanda.model.UserPersonalTask
 import djei.clockpanda.scheduling.model.CalendarEvent
 import djei.clockpanda.scheduling.model.CalendarEventType
 import djei.clockpanda.scheduling.model.TimeSpan
@@ -27,9 +28,7 @@ class OptimizerEvent(
     val title: String,
     val originalCalendarEvent: CalendarEvent?,
     val owner: String,
-    val personalTaskId: String?,
-    val personalTaskTargetDurationInMinutes: Int?,
-    val isHighPriorityPersonalTask: Boolean?
+    val userPersonalTask: UserPersonalTask?
 ) {
     @PlanningPin
     fun isPinned(): Boolean {

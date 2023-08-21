@@ -2,6 +2,7 @@ package djei.clockpanda.repository
 
 import arrow.core.getOrElse
 import arrow.core.left
+import arrow.core.right
 import djei.clockpanda.jooq.tables.references.USER_PERSONAL_TASK
 import djei.clockpanda.model.UserPersonalTask
 import djei.clockpanda.model.UserPersonalTaskMetadata
@@ -10,6 +11,8 @@ import djei.clockpanda.model.fixtures.UserPersonalTaskFixtures
 import djei.clockpanda.testing.ClockPandaSpringBootTest
 import djei.clockpanda.transaction.TransactionManager
 import djei.clockpanda.transaction.TransactionalContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -242,5 +245,62 @@ class UserPersonalTaskRepositoryTest {
         )
 
         Assertions.assertThat(result).isEqualTo(UserPersonalTaskRepositoryError.DatabaseError(exception).left())
+    }
+
+    @Test
+    fun `test updateOneOffPersonalTaskCurrentScheduledAt on task that does not exist`() {
+        val result = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.updateOneOffPersonalTaskCurrentScheduledAt(
+                ctx,
+                UUID.randomUUID(),
+                Clock.System.now()
+            )
+        }
+
+        Assertions.assertThat(result).isEqualTo(Unit.right())
+    }
+
+    @Test
+    fun `test updateOneOffPersonalTaskCurrentScheduledAt on task that exist`() {
+        val initialInsert = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.upsertPersonalTask(
+                ctx,
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
+            )
+        }.getOrElse { fail("This should not fail", it) }
+
+        val result = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.updateOneOffPersonalTaskCurrentScheduledAt(
+                ctx,
+                initialInsert.id,
+                Instant.parse("2121-05-05T00:00:00Z")
+            )
+        }
+
+        Assertions.assertThat(result).isEqualTo(Unit.right())
+        val retrieveAfterUpdate = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.getById(ctx, initialInsert.id)
+        }.getOrElse { fail("This should not fail", it) }
+        Assertions.assertThat((retrieveAfterUpdate!!.metadata as UserPersonalTaskMetadata.OneOffTask).currentScheduledAt)
+            .isEqualTo(Instant.parse("2121-05-05T00:00:00Z"))
+    }
+
+    @Test
+    fun `test updateOneOffPersonalTaskCurrentScheduledAt should return left value if query fails`() {
+        val mockCtx: TransactionalContext = mock()
+        val exception = RuntimeException("some error")
+        given { mockCtx.selectFrom(USER_PERSONAL_TASK) } willThrow { exception }
+
+        val result = userPersonalTaskRepository.updateOneOffPersonalTaskCurrentScheduledAt(
+            mockCtx,
+            UUID.randomUUID(),
+            Clock.System.now()
+        )
+
+        Assertions.assertThat(result).isEqualTo(
+            UserPersonalTaskRepositoryError.DatabaseError(
+                UserPersonalTaskRepositoryError.DatabaseError(exception)
+            ).left()
+        )
     }
 }
