@@ -140,7 +140,7 @@ class UserPreferencesControllerTest {
             responseContent as UserPreferencesController.PutUserPreferencesResponse.PutUserPreferencesSuccessResponse
         assertThat(successResponseContent.email).isEqualTo(UserFixtures.djei1NoPreferences.email)
         val fetchAfterPutPreferencesUser = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(
+            userRepository.getByEmail(
                 ctx,
                 UserFixtures.djei1NoPreferences.email
             )

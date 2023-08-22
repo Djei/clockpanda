@@ -1,6 +1,7 @@
 package djei.clockpanda.repository
 
 import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
 import djei.clockpanda.jooq.tables.references.USER
@@ -34,21 +35,21 @@ class UserRepositoryTest {
     lateinit var transactionManager: TransactionManager
 
     @Test
-    fun `test fetchByEmail should return null if no user found`() {
+    fun `test getByEmail should return null if no user found`() {
         val result = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, "should_not_exist@github.com")
+            userRepository.getByEmail(ctx, "should_not_exist@github.com")
         }
 
         assertThat(result).isEqualTo(null.right())
     }
 
     @Test
-    fun `test fetchByEmail should return left value if query fails`() {
+    fun `test getByEmail should return left value if query fails`() {
         val mockCtx: TransactionalContext = mock()
         val exception = RuntimeException("some error")
         given { mockCtx.selectFrom(USER) } willThrow { exception }
 
-        val result = userRepository.fetchByEmail(mockCtx, "should_not_exist@github.com")
+        val result = userRepository.getByEmail(mockCtx, "should_not_exist@github.com")
 
         assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
     }
@@ -124,12 +125,12 @@ class UserRepositoryTest {
 
         assertThat(nullValuesResult).isEqualTo(nullValuesUser.right())
         val fetchAfterCreateNullValuesUser = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, "djei@email.com")
+            userRepository.getByEmail(ctx, "djei@email.com")
         }
         assertThat(fetchAfterCreateNullValuesUser).isEqualTo(nullValuesUser.right())
         assertThat(allValuesResult).isEqualTo(allValuesUser.right())
         val fetchAfterCreateAllValuesUser = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, "djei2@email.com")
+            userRepository.getByEmail(ctx, "djei2@email.com")
         }
         assertThat(fetchAfterCreateAllValuesUser).isEqualTo(allValuesUser.right())
     }
@@ -184,7 +185,7 @@ class UserRepositoryTest {
         }
 
         val fetchAfterUpdateUser = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, "djei@email.com")
+            userRepository.getByEmail(ctx, "djei@email.com")
         }
         when (fetchAfterUpdateUser) {
             is Either.Left -> fail("Fetch should succeed")
@@ -228,7 +229,7 @@ class UserRepositoryTest {
         }
 
         val fetchAfterUpdateUser = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, "djei@email.com")
+            userRepository.getByEmail(ctx, "djei@email.com")
         }
         when (fetchAfterUpdateUser) {
             is Either.Left -> fail("Fetch should succeed")
@@ -247,5 +248,59 @@ class UserRepositoryTest {
         val result = userRepository.updateGoogleRefreshToken(mockCtx, "does not matter", "does not matter")
 
         assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
+    }
+
+    @Test
+    fun `test delete should return left value if query fails`() {
+        val mockCtx: TransactionalContext = mock()
+        val exception = RuntimeException("some error")
+        given { mockCtx.deleteFrom(USER) } willThrow { exception }
+
+        val result = userRepository.delete(mockCtx, "does not matter")
+
+        assertThat(result).isEqualTo(UserRepositoryError.DatabaseError(exception).left())
+    }
+
+    @Test
+    fun `test delete should delete user`() {
+        val userToDelete = User(
+            email = "djei@email.com",
+            firstName = "Djei First Name",
+            lastName = "Djei Last Name",
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
+            googleRefreshToken = "refresh-token",
+            preferences = UserFixtures.userPreferences,
+            createdAt = Clock.System.now(),
+            lastUpdatedAt = Clock.System.now()
+        )
+        val userToKeep = User(
+            email = "other_djei@email.com",
+            firstName = "Other Djei First Name",
+            lastName = "Other Djei Last Name",
+            calendarProvider = CalendarProvider.GOOGLE_CALENDAR,
+            calendarConnectionStatus = CalendarConnectionStatus.CONNECTED,
+            googleRefreshToken = "refresh-token",
+            preferences = UserFixtures.userPreferences,
+            createdAt = Clock.System.now(),
+            lastUpdatedAt = Clock.System.now()
+        )
+        transactionManager.transaction { ctx ->
+            userRepository.create(ctx, userToDelete)
+            userRepository.create(ctx, userToKeep)
+        }
+
+        transactionManager.transaction { ctx ->
+            userRepository.delete(ctx, userToDelete.email)
+        }
+
+        val fetchAfterDeleteUserToDelete = transactionManager.transaction { ctx ->
+            userRepository.getByEmail(ctx, userToDelete.email)
+        }
+        assertThat(fetchAfterDeleteUserToDelete).isEqualTo(null.right())
+        val fetchAfterDeleteUserToKeep = transactionManager.transaction { ctx ->
+            userRepository.getByEmail(ctx, userToKeep.email)
+        }
+        assertThat(fetchAfterDeleteUserToKeep.getOrElse { fail("should have succeeded") }).isNotNull
     }
 }

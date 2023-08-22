@@ -31,7 +31,7 @@ class TransactionManagerTest {
             }
         }
         val afterRetrieve = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, UserFixtures.djei2WithPreferences.email)
+            userRepository.getByEmail(ctx, UserFixtures.djei2WithPreferences.email)
         }.getOrElse { fail("This should return right value", it) }
         assertThat(afterRetrieve).isNull()
     }
@@ -44,7 +44,7 @@ class TransactionManagerTest {
             return@transaction Unit.right()
         }
         val rightEitherRetrieveAfterCreate = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, UserFixtures.djei2WithPreferences.email)
+            userRepository.getByEmail(ctx, UserFixtures.djei2WithPreferences.email)
         }
         when (rightEitherRetrieveAfterCreate) {
             is Either.Left -> fail("This should return right value", rightEitherRetrieveAfterCreate.value)
@@ -60,7 +60,7 @@ class TransactionManagerTest {
             return@transaction "Error".left()
         }
         val leftEitherRetrieveAfterCreate = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, UserFixtures.djei1NoPreferences.email)
+            userRepository.getByEmail(ctx, UserFixtures.djei1NoPreferences.email)
         }
         when (leftEitherRetrieveAfterCreate) {
             is Either.Left -> fail("This should return right value", leftEitherRetrieveAfterCreate.value)

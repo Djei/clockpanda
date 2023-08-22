@@ -11,6 +11,7 @@ import org.slf4j.Logger
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.core.user.OAuth2User
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -24,7 +25,7 @@ class UserController(
     fun user(@AuthenticationPrincipal principal: OAuth2User): ResponseEntity<GetUserResponse> {
         val email = principal.getEmail()
         val fetchByEmailResult = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, email)
+            userRepository.getByEmail(ctx, email)
         }
         return when (fetchByEmailResult) {
             is Either.Left -> {
@@ -40,6 +41,25 @@ class UserController(
                 } else {
                     ResponseEntity.ok(GetUserResponse.GetUserSuccessResponse.fromUser(fetchedUser))
                 }
+            }
+        }
+    }
+
+    @DeleteMapping("/user")
+    fun deleteUser(@AuthenticationPrincipal principal: OAuth2User): ResponseEntity<DeleteUserResponse> {
+        val email = principal.getEmail()
+        val deleteByEmailResult = transactionManager.transaction { ctx ->
+            userRepository.delete(ctx, email)
+        }
+        return when (deleteByEmailResult) {
+            is Either.Left -> {
+                logger.error("Failed to delete user by email: $email", deleteByEmailResult.value)
+                ResponseEntity.internalServerError()
+                    .body(DeleteUserResponse.DeleteUserFailResponse(listOf("Failed to delete user by email. Please refresh.")))
+            }
+
+            is Either.Right -> {
+                ResponseEntity.ok(DeleteUserResponse.DeleteUserSuccessResponse(email))
             }
         }
     }
@@ -67,5 +87,18 @@ class UserController(
                 )
             }
         }
+    }
+
+    @Serializable
+    sealed interface DeleteUserResponse {
+        @Serializable
+        data class DeleteUserFailResponse(
+            val errors: List<String>
+        ) : DeleteUserResponse
+
+        @Serializable
+        data class DeleteUserSuccessResponse(
+            val email: String,
+        ) : DeleteUserResponse
     }
 }

@@ -11,7 +11,7 @@ import java.time.OffsetDateTime
 @Repository
 class UserRepository {
 
-    fun fetchByEmail(ctx: TransactionalContext, email: String): Either<UserRepositoryError, User?> {
+    fun getByEmail(ctx: TransactionalContext, email: String): Either<UserRepositoryError, User?> {
         return Either.catch {
             ctx.selectFrom(USER)
                 .where(USER.EMAIL.eq(email))
@@ -61,6 +61,15 @@ class UserRepository {
             ctx.update(USER)
                 .set(USER.GOOGLE_REFRESH_TOKEN, refreshTokenValue)
                 .set(USER.LAST_UPDATED_AT, OffsetDateTime.now())
+                .where(USER.EMAIL.eq(email))
+                .execute()
+        }.mapLeft { UserRepositoryError.DatabaseError(it) }
+            .map { Unit }
+    }
+
+    fun delete(ctx: TransactionalContext, email: String): Either<UserRepositoryError, Unit> {
+        return Either.catch {
+            ctx.deleteFrom(USER)
                 .where(USER.EMAIL.eq(email))
                 .execute()
         }.mapLeft { UserRepositoryError.DatabaseError(it) }

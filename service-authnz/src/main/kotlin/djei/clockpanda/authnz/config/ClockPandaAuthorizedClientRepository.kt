@@ -87,7 +87,7 @@ class ClockPandaAuthorizedClientRepository(
         val firstName = user.attributes["given_name"] as String
         val lastName = user.attributes["family_name"] as String
         val fetchExistingUserResult = transactionManager.transaction { ctx ->
-            userRepository.fetchByEmail(ctx, email)
+            userRepository.getByEmail(ctx, email)
         }
         when (fetchExistingUserResult) {
             is Either.Left -> {
