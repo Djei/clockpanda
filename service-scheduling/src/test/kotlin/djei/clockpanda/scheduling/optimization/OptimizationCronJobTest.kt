@@ -269,7 +269,7 @@ class OptimizationCronJobTest : SchedulingSpringBootTest() {
                 setupOptimizationResult(solvedOptimizationProblem, solutionManagerMockStatic, solverFactoryMockStatic)
                 transactionManager.transaction { ctx ->
                     userRepository.create(ctx, UserFixtures.djei2WithPreferences)
-                    userPersonalTaskRepository.upsertPersonalTask(
+                    userPersonalTaskRepository.upsert(
                         ctx,
                         UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
                     )

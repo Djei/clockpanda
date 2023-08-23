@@ -66,7 +66,7 @@ class UserPersonalTaskController(
 
             is Either.Right -> {
                 val upsertResult = transactionManager.transaction { ctx ->
-                    userPersonalTaskRepository.upsertPersonalTask(
+                    userPersonalTaskRepository.upsert(
                         ctx = ctx,
                         userPersonalTask = request.toUserPersonalTask()
                     )
@@ -108,7 +108,7 @@ class UserPersonalTaskController(
 
             is Either.Right -> {
                 val deleteResult = transactionManager.transaction { ctx ->
-                    userPersonalTaskRepository.deletePersonalTask(ctx, request.id)
+                    userPersonalTaskRepository.delete(ctx, request.id)
                 }
                 when (deleteResult) {
                     is Either.Left -> {

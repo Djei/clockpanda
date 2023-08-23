@@ -1,17 +1,20 @@
 package djei.clockpanda.authnz
 
-import arrow.core.right
+import arrow.core.getOrElse
 import djei.clockpanda.authnz.controller.UserController
 import djei.clockpanda.model.CalendarConnectionStatus
 import djei.clockpanda.model.CalendarProvider
 import djei.clockpanda.model.User
 import djei.clockpanda.model.fixtures.UserFixtures
+import djei.clockpanda.model.fixtures.UserPersonalTaskFixtures
+import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.testing.ClockPandaSpringBootTest
 import djei.clockpanda.transaction.TransactionManager
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.fail
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
@@ -26,6 +29,9 @@ class UserControllerTest {
 
     @Autowired
     lateinit var userRepository: UserRepository
+
+    @Autowired
+    lateinit var userPersonalTaskRepository: UserPersonalTaskRepository
 
     @Autowired
     lateinit var transactionManager: TransactionManager
@@ -114,6 +120,9 @@ class UserControllerTest {
             createdAt = Clock.System.now(),
             lastUpdatedAt = Clock.System.now()
         )
+        val personalTaskForUserToDelete = UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.copy(
+            userEmail = userToDelete.email
+        )
         val userToKeep = User(
             email = "user_to_keep@email.com",
             firstName = "user first name",
@@ -125,9 +134,14 @@ class UserControllerTest {
             createdAt = Clock.System.now(),
             lastUpdatedAt = Clock.System.now()
         )
+        val personalTaskForUserToKeep = UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask.copy(
+            userEmail = userToKeep.email
+        )
         transactionManager.transaction { ctx ->
             userRepository.create(ctx, userToDelete)
             userRepository.create(ctx, userToKeep)
+            userPersonalTaskRepository.upsert(ctx, personalTaskForUserToDelete)
+            userPersonalTaskRepository.upsert(ctx, personalTaskForUserToKeep)
         }
 
         val result = mockMvc.perform(
@@ -143,7 +157,19 @@ class UserControllerTest {
         assertThat(result.response.status).isEqualTo(200)
         val fetchAfterDeleteUserToDelete = transactionManager.transaction { ctx ->
             userRepository.getByEmail(ctx, userToDelete.email)
-        }
-        assertThat(fetchAfterDeleteUserToDelete).isEqualTo(null.right())
+        }.getOrElse { fail("this should succeed") }
+        assertThat(fetchAfterDeleteUserToDelete).isNull()
+        val fetchAfterDeleteUserToKeep = transactionManager.transaction { ctx ->
+            userRepository.getByEmail(ctx, userToKeep.email)
+        }.getOrElse { fail("this should succeed") }
+        assertThat(fetchAfterDeleteUserToKeep).isNotNull
+        val fetchPersonalTasksAfterDeleteUserToDelete = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.listByUserEmail(ctx, userToDelete.email)
+        }.getOrElse { fail("this should succeed") }
+        assertThat(fetchPersonalTasksAfterDeleteUserToDelete).isEmpty()
+        val fetchPersonalTasksAfterDeleteUserToKeep = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.listByUserEmail(ctx, userToKeep.email)
+        }.getOrElse { fail("this should succeed") }
+        assertThat(fetchPersonalTasksAfterDeleteUserToKeep).hasSize(1)
     }
 }

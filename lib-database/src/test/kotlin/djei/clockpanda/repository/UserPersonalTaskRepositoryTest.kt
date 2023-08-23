@@ -74,15 +74,15 @@ class UserPersonalTaskRepositoryTest {
     @Test
     fun `test listByUserEmail should return personal task belonging to user when exist`() {
         transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice
             )
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
             )
@@ -113,7 +113,7 @@ class UserPersonalTaskRepositoryTest {
     @Test
     fun `test upsertPersonalTask inserts one off personal task if entry does not exist`() {
         val result = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice
             )
@@ -145,14 +145,14 @@ class UserPersonalTaskRepositoryTest {
     @Test
     fun `test upsertPersonalTask updates if entry does not exist`() {
         val initialInsert = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
         }.getOrElse { fail("This should not fail", it) }
 
         val result = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 initialInsert.copy(
                     title = "new title",
@@ -190,7 +190,7 @@ class UserPersonalTaskRepositoryTest {
         val exception = RuntimeException("some error")
         given { mockCtx.insertInto(USER_PERSONAL_TASK) } willThrow { exception }
 
-        val result = userPersonalTaskRepository.upsertPersonalTask(
+        val result = userPersonalTaskRepository.upsert(
             mockCtx,
             UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
         )
@@ -201,50 +201,13 @@ class UserPersonalTaskRepositoryTest {
     @Test
     fun `test deletePersonalTask if entry does not exist`() {
         val result = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.deletePersonalTask(
+            userPersonalTaskRepository.delete(
                 ctx,
                 UUID.randomUUID()
             )
         }.getOrElse { fail("This should not fail", it) }
 
         Assertions.assertThat(result).isEqualTo(Unit)
-    }
-
-    @Test
-    fun `test deletePersonalTask if entry exists`() {
-        val initialInsert = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
-                ctx,
-                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
-            )
-        }.getOrElse { fail("This should not fail", it) }
-
-        val result = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.deletePersonalTask(
-                ctx,
-                initialInsert.id
-            )
-        }.getOrElse { fail("This should not fail", it) }
-
-        Assertions.assertThat(result).isEqualTo(Unit)
-        val retrieveAfterDelete = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.getById(ctx, initialInsert.id)
-        }.getOrElse { fail("This should not fail", it) }
-        Assertions.assertThat(retrieveAfterDelete).isNull()
-    }
-
-    @Test
-    fun `test deletePersonalTask should return left value if query fails`() {
-        val mockCtx: TransactionalContext = mock()
-        val exception = RuntimeException("some error")
-        given { mockCtx.deleteFrom(USER_PERSONAL_TASK) } willThrow { exception }
-
-        val result = userPersonalTaskRepository.deletePersonalTask(
-            mockCtx,
-            UUID.randomUUID()
-        )
-
-        Assertions.assertThat(result).isEqualTo(UserPersonalTaskRepositoryError.DatabaseError(exception).left())
     }
 
     @Test
@@ -263,7 +226,7 @@ class UserPersonalTaskRepositoryTest {
     @Test
     fun `test updateOneOffPersonalTaskCurrentScheduledAt on task that exist`() {
         val initialInsert = transactionManager.transaction { ctx ->
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
@@ -302,5 +265,99 @@ class UserPersonalTaskRepositoryTest {
                 UserPersonalTaskRepositoryError.DatabaseError(exception)
             ).left()
         )
+    }
+
+    @Test
+    fun `test deletePersonalTask if entry exists`() {
+        val initialInsert = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.upsert(
+                ctx,
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
+            )
+        }.getOrElse { fail("This should not fail", it) }
+
+        val result = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.delete(
+                ctx,
+                initialInsert.id
+            )
+        }.getOrElse { fail("This should not fail", it) }
+
+        Assertions.assertThat(result).isEqualTo(Unit)
+        val retrieveAfterDelete = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.getById(ctx, initialInsert.id)
+        }.getOrElse { fail("This should not fail", it) }
+        Assertions.assertThat(retrieveAfterDelete).isNull()
+    }
+
+    @Test
+    fun `test deletePersonalTask should return left value if query fails`() {
+        val mockCtx: TransactionalContext = mock()
+        val exception = RuntimeException("some error")
+        given { mockCtx.deleteFrom(USER_PERSONAL_TASK) } willThrow { exception }
+
+        val result = userPersonalTaskRepository.delete(
+            mockCtx,
+            UUID.randomUUID()
+        )
+
+        Assertions.assertThat(result).isEqualTo(UserPersonalTaskRepositoryError.DatabaseError(exception).left())
+    }
+
+    @Test
+    fun `test deletePersonalTaskByUserEmail deletes all personal tasks of user`() {
+        val initialInsert1 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.upsert(
+                ctx,
+                UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
+            )
+        }.getOrElse { fail("This should not fail", it) }
+        val initialInsert2 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.upsert(
+                ctx,
+                UserPersonalTaskFixtures.djei1OneOffReviewTechDesignUserPersonalTask
+            )
+        }.getOrElse { fail("This should not fail", it) }
+        val initialInsert3 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.upsert(
+                ctx,
+                UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
+            )
+        }.getOrElse { fail("This should not fail", it) }
+
+        val result = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.deleteByUserEmail(
+                ctx,
+                UserPersonalTaskFixtures.djei1OneOffReviewTechDesignUserPersonalTask.userEmail
+            )
+        }.getOrElse { fail("This should not fail", it) }
+
+        Assertions.assertThat(result).isEqualTo(Unit)
+        val retrieveAfterDelete1 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.getById(ctx, initialInsert1.id)
+        }.getOrElse { fail("This should not fail", it) }
+        Assertions.assertThat(retrieveAfterDelete1).isNull()
+        val retrieveAfterDelete2 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.getById(ctx, initialInsert2.id)
+        }.getOrElse { fail("This should not fail", it) }
+        Assertions.assertThat(retrieveAfterDelete2).isNull()
+        val retrieveAfterDelete3 = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.getById(ctx, initialInsert3.id)
+        }.getOrElse { fail("This should not fail", it) }
+        Assertions.assertThat(retrieveAfterDelete3).isNotNull
+    }
+
+    @Test
+    fun `test deletePersonalTaskByUserEmail should return left value if query fails`() {
+        val mockCtx: TransactionalContext = mock()
+        val exception = RuntimeException("some error")
+        given { mockCtx.deleteFrom(USER_PERSONAL_TASK) } willThrow { exception }
+
+        val result = userPersonalTaskRepository.deleteByUserEmail(
+            mockCtx,
+            "user@email.com"
+        )
+
+        Assertions.assertThat(result).isEqualTo(UserPersonalTaskRepositoryError.DatabaseError(exception).left())
     }
 }

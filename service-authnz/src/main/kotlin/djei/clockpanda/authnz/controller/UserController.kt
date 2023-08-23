@@ -4,6 +4,7 @@ import arrow.core.Either
 import djei.clockpanda.authnz.model.getEmail
 import djei.clockpanda.model.User
 import djei.clockpanda.model.UserPreferences
+import djei.clockpanda.repository.UserPersonalTaskRepository
 import djei.clockpanda.repository.UserRepository
 import djei.clockpanda.transaction.TransactionManager
 import kotlinx.serialization.Serializable
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class UserController(
     private val userRepository: UserRepository,
+    private val userPersonalTaskRepository: UserPersonalTaskRepository,
     private val transactionManager: TransactionManager,
     private val logger: Logger
 ) {
@@ -49,6 +51,7 @@ class UserController(
     fun deleteUser(@AuthenticationPrincipal principal: OAuth2User): ResponseEntity<DeleteUserResponse> {
         val email = principal.getEmail()
         val deleteByEmailResult = transactionManager.transaction { ctx ->
+            userPersonalTaskRepository.deleteByUserEmail(ctx, email)
             userRepository.delete(ctx, email)
         }
         return when (deleteByEmailResult) {

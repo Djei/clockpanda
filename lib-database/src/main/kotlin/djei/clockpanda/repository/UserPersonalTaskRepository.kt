@@ -41,7 +41,7 @@ class UserPersonalTaskRepository {
         }
     }
 
-    fun upsertPersonalTask(
+    fun upsert(
         ctx: TransactionalContext,
         userPersonalTask: UserPersonalTask,
         upsertedAt: Instant = Clock.System.now()
@@ -85,7 +85,7 @@ class UserPersonalTaskRepository {
                     metadata = metadataWithUpdatedCurrentScheduledAt,
                     lastUpdatedAt = Clock.System.now()
                 )
-                upsertPersonalTask(ctx, newTask)
+                upsert(ctx, newTask)
                     .getOrElse { throw it }
                 Unit
             }
@@ -94,13 +94,27 @@ class UserPersonalTaskRepository {
         }
     }
 
-    fun deletePersonalTask(
+    fun delete(
         ctx: TransactionalContext,
         id: UUID
     ): Either<UserPersonalTaskRepositoryError, Unit> {
         return Either.catch {
             ctx.deleteFrom(USER_PERSONAL_TASK)
                 .where(USER_PERSONAL_TASK.ID.eq(id))
+                .execute()
+            Unit
+        }.mapLeft {
+            UserPersonalTaskRepositoryError.DatabaseError(it)
+        }
+    }
+
+    fun deleteByUserEmail(
+        ctx: TransactionalContext,
+        userEmail: String
+    ): Either<UserPersonalTaskRepositoryError, Unit> {
+        return Either.catch {
+            ctx.deleteFrom(USER_PERSONAL_TASK)
+                .where(USER_PERSONAL_TASK.USER_EMAIL.eq(userEmail))
                 .execute()
             Unit
         }.mapLeft {

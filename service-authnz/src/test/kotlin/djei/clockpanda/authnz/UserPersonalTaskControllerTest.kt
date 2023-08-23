@@ -56,7 +56,7 @@ class UserPersonalTaskControllerTest {
                     UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice,
                     UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
                 ).map {
-                    userPersonalTaskRepository.upsertPersonalTask(
+                    userPersonalTaskRepository.upsert(
                         ctx,
                         it
                     ).bind()
@@ -158,7 +158,7 @@ class UserPersonalTaskControllerTest {
     fun `test putPersonalTask - happy path`() {
         transactionManager.transaction { ctx ->
             userRepository.create(ctx, UserFixtures.djei1NoPreferences)
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDoExpensesUserPersonalTask
             )
@@ -247,7 +247,7 @@ class UserPersonalTaskControllerTest {
         transactionManager.transaction { ctx ->
             userRepository.create(ctx, UserFixtures.djei1NoPreferences)
             userRepository.create(ctx, UserFixtures.djei2WithPreferences)
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei2OneOffReadPaperUserPersonalTask
             )
@@ -275,7 +275,7 @@ class UserPersonalTaskControllerTest {
     fun `test deletePersonalTask - happy path`() {
         transactionManager.transaction { ctx ->
             userRepository.create(ctx, UserFixtures.djei1NoPreferences)
-            userPersonalTaskRepository.upsertPersonalTask(
+            userPersonalTaskRepository.upsert(
                 ctx,
                 UserPersonalTaskFixtures.djei1OneOffDropPackageAtPostOffice
             )
